@@ -1,0 +1,4 @@
+task_order: 0
+pre_training_num: 5
+task_suite: "libero_object"
+adapt_demo_num_each_task: 10 # 50 available
