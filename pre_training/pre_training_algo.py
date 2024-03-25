@@ -61,11 +61,10 @@ class PreTrainMultitask(Sequential):
                 training_loss /= len(train_dataloader)
             else:  # just evaluate the zero-shot performance on 0-th epoch
                 training_loss = 0.0
-                pass
-                # for (idx, data) in enumerate(train_dataloader):
-                #     loss = self.eval_observe(data)
-                #     training_loss += loss
-                # training_loss /= len(train_dataloader)
+                for (idx, data) in enumerate(train_dataloader):
+                    loss = self.eval_observe(data)
+                    training_loss += loss
+                training_loss /= len(train_dataloader)
             t1 = time.time()
 
             print(
