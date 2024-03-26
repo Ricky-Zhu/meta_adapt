@@ -75,10 +75,10 @@ class PreTrainMultitask(Sequential):
                 t0 = time.time()
                 self.policy.eval()
 
-                # model_checkpoint_name_ep = os.path.join(
-                #     self.experiment_dir, f"multitask_model_ep{epoch}.pth"
-                # )
-                # torch_save_model(self.policy, model_checkpoint_name_ep, cfg=self.cfg)
+                model_checkpoint_name_ep = os.path.join(
+                    self.experiment_dir, f"multitask_model_ep{epoch}.pth"
+                )
+                torch_save_model(self.policy, model_checkpoint_name_ep, cfg=self.cfg)
                 losses.append(training_loss)
 
                 # for multitask learning, we provide an option whether to evaluate
