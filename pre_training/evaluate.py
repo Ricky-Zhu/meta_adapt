@@ -2,7 +2,10 @@ import argparse
 import sys
 import os
 from pre_training_algo import PreTrainMultitask
+import sys
+from os.path import dirname, abspath
 
+sys.path.append(dirname(dirname(abspath(__file__))))
 # TODO: find a better way for this?
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import hydra
@@ -15,7 +18,7 @@ import robomimic.utils.file_utils as FileUtils
 
 from libero.libero import get_libero_path
 from libero.libero.benchmark import get_benchmark
-from libero.libero.envs import OffScreenRenderEnv, SubprocVectorEnv
+from libero.libero.envs import OffScreenRenderEnv, SubprocVectorEnv, DummyVectorEnv
 from libero.libero.utils.time_utils import Timer
 from libero.libero.utils.video_utils import VideoWriter
 from libero.lifelong.algos import *
@@ -112,7 +115,7 @@ def main():
     )
 
 
-
+    control_seed(cfg.seed)
     cfg.folder = get_libero_path("datasets")
     cfg.bddl_folder = get_libero_path("bddl_files")
     cfg.init_states_folder = get_libero_path("init_states")
@@ -155,7 +158,7 @@ def main():
             "camera_heights": cfg.data.img_h,
             "camera_widths": cfg.data.img_w,
         }
-        env_num = 20 # TODO change to 20
+        env_num = 1 # TODO change to 20
         env = SubprocVectorEnv(
             [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
         )
