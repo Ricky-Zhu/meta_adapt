@@ -4,7 +4,7 @@ import os
 from pre_training_algo import PreTrainMultitask
 import sys
 from os.path import dirname, abspath
-
+import multiprocessing
 sys.path.append(dirname(dirname(abspath(__file__))))
 # TODO: find a better way for this?
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -15,7 +15,9 @@ import pprint
 import time
 import torch
 import robomimic.utils.file_utils as FileUtils
+from warnings import filterwarnings
 
+filterwarnings(action='ignore', category=DeprecationWarning, message='`np.bool` is a deprecated alias')
 from libero.libero import get_libero_path
 from libero.libero.benchmark import get_benchmark
 from libero.libero.envs import OffScreenRenderEnv, SubprocVectorEnv, DummyVectorEnv
@@ -158,7 +160,7 @@ def main():
             "camera_heights": cfg.data.img_h,
             "camera_widths": cfg.data.img_w,
         }
-        env_num = 1 # TODO change to 20
+        env_num = 2 # TODO change to 20
         env = SubprocVectorEnv(
             [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
         )
@@ -205,4 +207,6 @@ def main():
 
 
 if __name__ == "__main__":
+    if multiprocessing.get_start_method(allow_none=True) != "spawn":
+        multiprocessing.set_start_method("spawn", force=True)
     main()
