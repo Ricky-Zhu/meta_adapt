@@ -1,3 +1,6 @@
+from warnings import filterwarnings
+
+filterwarnings(action='ignore', category=DeprecationWarning)
 import argparse
 import sys
 import os
@@ -5,6 +8,7 @@ from pre_training_algo import PreTrainMultitask
 import sys
 from os.path import dirname, abspath
 import multiprocessing
+
 sys.path.append(dirname(dirname(abspath(__file__))))
 # TODO: find a better way for this?
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -15,9 +19,7 @@ import pprint
 import time
 import torch
 import robomimic.utils.file_utils as FileUtils
-from warnings import filterwarnings
 
-filterwarnings(action='ignore', category=DeprecationWarning, message='`np.bool` is a deprecated alias')
 from libero.libero import get_libero_path
 from libero.libero.benchmark import get_benchmark
 from libero.libero.envs import OffScreenRenderEnv, SubprocVectorEnv, DummyVectorEnv
@@ -116,7 +118,6 @@ def main():
         model_path, map_location=None
     )
 
-
     control_seed(cfg.seed)
     cfg.folder = get_libero_path("datasets")
     cfg.bddl_folder = get_libero_path("bddl_files")
@@ -135,7 +136,6 @@ def main():
     descriptions = [benchmark.get_task(i).language for i in range(10)]
     task_embs = get_task_embs(cfg, descriptions)
     benchmark.set_task_embs(task_embs)
-
 
     # load the dataset via using function get_dataset, so that the obsutils in robomimic can be initialized
     all_obs_keys = []
@@ -160,7 +160,7 @@ def main():
             "camera_heights": cfg.data.img_h,
             "camera_widths": cfg.data.img_w,
         }
-        env_num = 2 # TODO change to 20
+        env_num = 2  # TODO change to 20
         env = SubprocVectorEnv(
             [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
         )

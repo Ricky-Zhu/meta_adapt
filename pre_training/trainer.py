@@ -1,3 +1,6 @@
+from warnings import filterwarnings
+
+filterwarnings(action='ignore', category=DeprecationWarning)
 import os
 from pre_training_algo import PreTrainMultitask
 
@@ -13,9 +16,7 @@ from easydict import EasyDict
 from omegaconf import OmegaConf
 from libero.libero import get_libero_path
 from libero.lifelong.algos import get_algo_class, get_algo_list
-from warnings import filterwarnings
 
-filterwarnings(action='ignore', category=DeprecationWarning, message='`np.bool` is a deprecated alias')
 from libero.lifelong.utils import (
     NpEncoder,
     compute_flops,
