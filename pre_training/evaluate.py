@@ -110,6 +110,7 @@ def parse_args():
 
 
 def main():
+
     # e.g., experiments/LIBERO_SPATIAL/Multitask/BCRNNPolicy_seed100/
 
     model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_002/multitask_model.pth'
@@ -149,7 +150,7 @@ def main():
         dataset_path=dataset_path, all_obs_keys=all_obs_keys, verbose=False
     )
     ### ======================= start evaluation ============================
-
+    start_time = time.time()
     algo.eval()
     for i in range(cfg.task_creation.pre_training_num):
         task = benchmark.get_task(i)
@@ -161,7 +162,8 @@ def main():
             "camera_widths": cfg.data.img_w,
         }
         env_num = 2  # TODO change to 20
-        env = SubprocVectorEnv(
+
+        env = DummyVectorEnv(
             [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
         )
         env.reset()
@@ -204,6 +206,9 @@ def main():
         success_rate = num_success / env_num
         env.close()
         print(f'task {i}: {success_rate}')
+
+    end_time = time.time()
+    print(f'cost time {end_time-start_time}')
 
 
 if __name__ == "__main__":
