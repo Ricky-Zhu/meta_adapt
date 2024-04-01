@@ -1,22 +1,32 @@
 from warnings import filterwarnings
 
 filterwarnings(action='ignore', category=DeprecationWarning)
-import os
+from libero.libero import benchmark
 from pre_training_algo import PreTrainMultitask
+import os
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-import sys
 import json
 import multiprocessing
 import pprint
+import time
+from pathlib import Path
+
 import hydra
+import numpy as np
 import wandb
 import yaml
+import torch
 from easydict import EasyDict
+from hydra.utils import to_absolute_path
 from omegaconf import OmegaConf
-from libero.libero import get_libero_path
-from libero.lifelong.algos import get_algo_class, get_algo_list
 
+from libero.libero import get_libero_path
+from libero.libero.benchmark import get_benchmark
+from libero.lifelong.algos import get_algo_class, get_algo_list
+from libero.lifelong.models import get_policy_list
+from libero.lifelong.datasets import GroupedTaskDataset, SequenceVLDataset, get_dataset
+from libero.lifelong.metric import evaluate_loss, evaluate_success
 from libero.lifelong.utils import (
     NpEncoder,
     compute_flops,
@@ -30,7 +40,7 @@ import sys
 from os.path import dirname, abspath
 
 sys.path.append(dirname(dirname(abspath(__file__))))
-from utils.task_creation import create_tasks
+
 
 
 @hydra.main(config_path="../configs", config_name="pre_training", version_base=None)
@@ -51,15 +61,51 @@ def main(hydra_cfg):
     cfg.bddl_folder = cfg.bddl_folder or get_libero_path("bddl_files")
     cfg.init_states_folder = cfg.init_states_folder or get_libero_path("init_states")
 
-    pre_training_dataset, post_adaptation_dataset, benchmark_instance, shape_meta = create_tasks(cfg)
+    ##################### get the dataset (pre_training and adaptation) ####################
+
+    benchmark = get_benchmark(cfg.task_creation.task_suite)(cfg.task_creation.task_order)
+    n_manip_tasks = benchmark.n_tasks
+
+    # prepare datasets from the benchmark
+    manip_datasets = []
+    descriptions = []
+    shape_meta = None
+
+    for i in range(n_manip_tasks):
+        # currently we assume tasks from same benchmark have the same shape_meta
+        try:
+            task_i_dataset, shape_meta = get_dataset(
+                dataset_path=os.path.join(
+                    cfg.folder, benchmark.get_task_demonstration(i)
+                ),
+                obs_modality=cfg.data.obs.modality,
+                initialize_obs_utils=(i == 0),
+                seq_len=cfg.data.seq_len,
+            )
+        except Exception as e:
+            print(
+                f"[error] failed to load task {i} name {benchmark.get_task_names()[i]}"
+            )
+            print(f"[error] {e}")
+        # add language to the vision dataset, hence we call vl_dataset
+        task_description = benchmark.get_task(i).language
+        descriptions.append(task_description)
+        manip_datasets.append(task_i_dataset)
+
+    task_embs = get_task_embs(cfg, descriptions)
+    benchmark.set_task_embs(task_embs)
+
+    pre_training_dataset = [SequenceVLDataset(ds, emb) for (ds, emb) in
+                            zip(manip_datasets[:cfg.task_creation.pre_training_num],
+                                task_embs[:cfg.task_creation.pre_training_num])]
 
     print("\n=================== Pretraining ===================")
-    print(f" Name: {benchmark_instance.name}")
+    print(f" Name: {benchmark.name}")
     print(f" # Tasks: {cfg.task_creation.pre_training_num}")
 
     for i in range(cfg.task_creation.pre_training_num):
         print(f"    - Task {i + 1}:")
-        print(f"        {benchmark_instance.get_task(i).language}")
+        print(f"        {benchmark.get_task(i).language}")
     print("=======================================================================\n")
 
     # prepare experiment and update the config
@@ -73,15 +119,13 @@ def main(hydra_cfg):
     algo = safe_device(get_algo_class(cfg.lifelong.algo)(n_tasks=1, cfg=cfg), cfg.device)
 
     print(f"[info] start lifelong learning with algo {cfg.lifelong.algo}")
-    # GFLOPs, MParams = compute_flops(algo, pre_training_dataset[0], cfg)
-    # print(f"[info] policy has {GFLOPs:.1f} GFLOPs and {MParams:.1f} MParams\n")
 
     # save the experiment config file, so we can resume or replay later
     with open(os.path.join(cfg.experiment_dir, "config.json"), "w") as f:
         json.dump(cfg, f, cls=NpEncoder, indent=4)
 
     algo.train()
-    s_fwd, l_fwd = algo.learn_all_tasks(pre_training_dataset, benchmark_instance)
+    s_fwd, l_fwd = algo.learn_all_tasks(pre_training_dataset, benchmark)
 
     print("[info] finished learning\n")
     if cfg.use_wandb:

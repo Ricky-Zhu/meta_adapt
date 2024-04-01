@@ -1,5 +1,7 @@
 import os
+from warnings import filterwarnings
 
+filterwarnings(action='ignore', category=DeprecationWarning)
 import numpy as np
 import torch
 import torch.nn as nn
@@ -33,9 +35,9 @@ class PreTrainMultitask(Sequential):
         train_dataloader = DataLoader(
             concat_dataset,
             batch_size=self.cfg.train.batch_size,
-            num_workers=self.cfg.train.num_workers,
+            num_workers=0,
             sampler=RandomSampler(concat_dataset),
-            persistent_workers=True,
+            persistent_workers=False,
         )
 
         prev_success_rate = -1.0
@@ -61,6 +63,7 @@ class PreTrainMultitask(Sequential):
                 training_loss /= len(train_dataloader)
             else:  # just evaluate the zero-shot performance on 0-th epoch
                 training_loss = 0.0
+
                 for (idx, data) in enumerate(train_dataloader):
                     loss = self.eval_observe(data)
                     training_loss += loss
@@ -140,6 +143,3 @@ class PreTrainMultitask(Sequential):
             losses[idx_at_best_succ:] = loss_at_best_succ
             successes[idx_at_best_succ:] = success_at_best_succ
         return successes.sum() / cumulated_counter, losses.sum() / cumulated_counter
-
-
-

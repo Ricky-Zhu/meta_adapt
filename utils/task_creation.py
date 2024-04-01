@@ -80,9 +80,9 @@ def create_tasks(cfg):
     task_embs = get_task_embs(cfg, descriptions)
     benchmark_instance.set_task_embs(task_embs)
 
-    pre_training_dataset = [GroupedTaskDataset(
-        manip_datasets[0: cfg.task_creation.pre_training_num], task_embs[0: cfg.task_creation.pre_training_num]
-    )]
+    pre_training_dataset = [SequenceVLDataset(ds, emb) for (ds, emb) in
+                            zip(manip_datasets[:cfg.task_creation.pre_training_num],
+                                task_embs[:cfg.task_creation.pre_training_num])]
     post_adaptation_dataset = [SequenceVLDataset(ds, emb) for (ds, emb) in
                                zip(manip_datasets[cfg.task_creation.pre_training_num:],
                                    task_embs[cfg.task_creation.pre_training_num:])]
