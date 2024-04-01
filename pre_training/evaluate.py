@@ -163,7 +163,7 @@ def main():
         }
         env_num = 2  # TODO change to 20
 
-        env = DummyVectorEnv(
+        env = SubprocVectorEnv(
             [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
         )
         env.reset()
