@@ -64,17 +64,17 @@ class PreTrainMultitask(Sequential):
             else:  # just evaluate the zero-shot performance on 0-th epoch
                 training_loss = 0.0
 
-                # for (idx, data) in enumerate(train_dataloader):
-                #     loss = self.eval_observe(data)
-                #     training_loss += loss
-                # training_loss /= len(train_dataloader)
+                for (idx, data) in enumerate(train_dataloader):
+                    loss = self.eval_observe(data)
+                    training_loss += loss
+                training_loss /= len(train_dataloader)
             t1 = time.time()
 
             print(
                 f"[info] Epoch: {epoch:3d} | train loss: {training_loss:5.2f} | time: {(t1 - t0) / 60:4.2f}"
             )
 
-            if epoch % self.cfg.eval.eval_every == 0:  # evaluate BC loss
+            if epoch % self.cfg.eval.eval_every == 0 and self.cfg.eval.eval:  # evaluate BC loss
                 t0 = time.time()
                 self.policy.eval()
 
@@ -117,6 +117,14 @@ class PreTrainMultitask(Sequential):
 
             if self.scheduler is not None and epoch > 0:
                 self.scheduler.step()
+
+        # eval the model in the envs
+        final_success_rates = evaluate_pretrain_multitask_training_success(
+            self.cfg, self, benchmark, pretrain_tasks
+        )
+        final_success_rate = np.mean(final_success_rates)
+        print('Final success rate:', final_success_rates)
+        print('Final avg success rate:', final_success_rate)
 
         # load the best policy if there is any
         if self.cfg.lifelong.eval_in_train:

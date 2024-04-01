@@ -1,1 +1,1 @@
-python ../pre_training/trainer.py eval.n_eval=10 task_creation.pre_training_num=5
+python ../pre_training/trainer.py task_creation.pre_training_num=5
