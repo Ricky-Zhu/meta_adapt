@@ -74,7 +74,7 @@ class PreTrainMultitask(Sequential):
                 f"[info] Epoch: {epoch:3d} | train loss: {training_loss:5.2f} | time: {(t1 - t0) / 60:4.2f}"
             )
 
-            if epoch % self.cfg.eval.eval_every == 0 and self.cfg.eval.eval:  # evaluate BC loss
+            if epoch % self.cfg.eval.eval_every == 0:  # evaluate BC loss
                 t0 = time.time()
                 self.policy.eval()
 
@@ -88,32 +88,32 @@ class PreTrainMultitask(Sequential):
                 # the agent once every eval_every epochs on all tasks, note that
                 # this can be quite computationally expensive. Nevertheless, we
                 # save the checkpoints, so users can always evaluate afterwards.
-
-                success_rates = evaluate_pretrain_multitask_training_success(
-                    self.cfg, self, benchmark, pretrain_tasks
-                )
-                success_rate = np.mean(success_rates)
-
-                successes.append(success_rate)
-
-                if prev_success_rate < success_rate and (not self.cfg.pretrain):
-                    torch_save_model(self.policy, model_checkpoint_name, cfg=self.cfg)
-                    prev_success_rate = success_rate
-                    idx_at_best_succ = len(losses) - 1
-
-                t1 = time.time()
-
-                cumulated_counter += 1.0
-                ci = confidence_interval(success_rate, self.cfg.eval.n_eval)
-                tmp_successes = np.array(successes)
-                tmp_successes[idx_at_best_succ:] = successes[idx_at_best_succ]
-
-                if self.cfg.lifelong.eval_in_train:
-                    print(
-                        f"[info] Epoch: {epoch:3d} | succ: {success_rate:4.2f} ± {ci:4.2f} | best succ: {prev_success_rate} "
-                        + f"| succ. AoC {tmp_successes.sum() / cumulated_counter:4.2f} | time: {(t1 - t0) / 60:4.2f}",
-                        flush=True,
+                if self.cfg.eval.eval:
+                    success_rates = evaluate_pretrain_multitask_training_success(
+                        self.cfg, self, benchmark, pretrain_tasks
                     )
+                    success_rate = np.mean(success_rates)
+
+                    successes.append(success_rate)
+
+                    if prev_success_rate < success_rate and (not self.cfg.pretrain):
+                        torch_save_model(self.policy, model_checkpoint_name, cfg=self.cfg)
+                        prev_success_rate = success_rate
+                        idx_at_best_succ = len(losses) - 1
+
+                    t1 = time.time()
+
+                    cumulated_counter += 1.0
+                    ci = confidence_interval(success_rate, self.cfg.eval.n_eval)
+                    tmp_successes = np.array(successes)
+                    tmp_successes[idx_at_best_succ:] = successes[idx_at_best_succ]
+
+                    if self.cfg.lifelong.eval_in_train:
+                        print(
+                            f"[info] Epoch: {epoch:3d} | succ: {success_rate:4.2f} ± {ci:4.2f} | best succ: {prev_success_rate} "
+                            + f"| succ. AoC {tmp_successes.sum() / cumulated_counter:4.2f} | time: {(t1 - t0) / 60:4.2f}",
+                            flush=True,
+                        )
 
             if self.scheduler is not None and epoch > 0:
                 self.scheduler.step()
