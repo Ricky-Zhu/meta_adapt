@@ -182,7 +182,7 @@ class PreTrainMultitask(Sequential):
         losses = []
 
         # start training
-        for epoch in range(0, self.cfg.train.n_epochs + 1):
+        for epoch in range(0, self.cfg.adaptation.n_epochs + 1):
 
             t0 = time.time()
             if epoch > 0 or (self.cfg.pretrain):  # update
