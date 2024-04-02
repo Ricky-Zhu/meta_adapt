@@ -205,7 +205,7 @@ class PreTrainMultitask(Sequential):
                 f"[info] Epoch: {epoch:3d} | train loss: {training_loss:5.2f} | time: {(t1 - t0) / 60:4.2f}"
             )
 
-            if epoch % self.cfg.eval.eval_every == 0:  # evaluate BC loss
+            if epoch % self.cfg.adaptation.eval_every == 0:  # evaluate BC loss
                 t0 = time.time()
                 model_checkpoint_name_ep = os.path.join(
                     self.experiment_dir, f"lora_model_ep{epoch}.pth"
@@ -222,7 +222,8 @@ class PreTrainMultitask(Sequential):
                 # the agent once every eval_every epochs on all tasks, note that
                 # this can be quite computationally expensive. Nevertheless, we
                 # save the checkpoints, so users can always evaluate afterwards.
-                if self.cfg.eval.eval:
+                if self.cfg.adaptation.eval:
+                    self.cfg.eval.n_eval = self.cfg.adaptation.n_eval
                     success_rates = evaluate_pretrain_multitask_training_success(
                         self.cfg, self, benchmark, adapt_task
                     )
@@ -257,6 +258,7 @@ class PreTrainMultitask(Sequential):
             self.cfg, self, benchmark, adapt_task
         )
         final_success_rate = np.mean(final_success_rates)
+        print(self.cfg.experiment_dir)
         print('Final success rate:', final_success_rates)
         print('Final avg success rate:', final_success_rate)
 
@@ -284,4 +286,4 @@ class PreTrainMultitask(Sequential):
             success_at_best_succ = successes[idx_at_best_succ]
             losses[idx_at_best_succ:] = loss_at_best_succ
             successes[idx_at_best_succ:] = success_at_best_succ
-        return successes.sum() / cumulated_counter, losses.sum() / cumulated_counter
+

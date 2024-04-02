@@ -88,17 +88,6 @@ def main(adaptation_cfg):
     cfg.bddl_folder = get_libero_path("bddl_files")
     cfg.init_states_folder = get_libero_path("init_states")
 
-    # model with lora definition
-    cfg.policy.policy_type = 'LoraBCTPolicy'
-    # remove the previous experiment dir
-    cfg.pop('experiment_dir')
-    algo = safe_device(eval('PreTrainMultitask')(10, cfg), 'cuda')
-    algo.policy.previous_mask = previous_mask
-    algo.policy.load_state_dict(sd, strict=False)
-
-    which_bias_train = 'lora_only' if not cfg.adaptation.train_all_bias else 'all'
-    lora.mark_only_lora_as_trainable(algo.policy, bias=which_bias_train)
-
     #################################
     benchmark = get_benchmark(cfg.task_creation.task_suite)(cfg.task_creation.task_order)
     descriptions = [benchmark.get_task(i).language for i in range(10)]
@@ -141,6 +130,17 @@ def main(adaptation_cfg):
                                                  task_embs[cfg.adaptation.adaptation_task_id])]
 
     ##################################
+    # model with lora definition
+    cfg.policy.policy_type = 'LoraBCTPolicy'
+    # remove the previous experiment dir so that the initialization of algo will create a new exp dir
+    cfg.pop('experiment_dir')
+    algo = safe_device(eval('PreTrainMultitask')(10, cfg), 'cuda')
+    algo.policy.previous_mask = previous_mask
+    algo.policy.load_state_dict(sd, strict=False)
+
+    which_bias_train = 'lora_only' if not cfg.adaptation.train_all_bias else 'all'
+    lora.mark_only_lora_as_trainable(algo.policy, bias=which_bias_train)
+
     # prepare experiment dir and train
     algo.adapt(post_adaptation_dataset, benchmark, adapt_task_id=cfg.adaptation.adaptation_task_id,
                which_bias_train=which_bias_train)

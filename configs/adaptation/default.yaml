@@ -3,3 +3,6 @@ train_all_bias: false
 adapt_demo_num_each_task: 10
 adaptation_task_id: 6
 n_epochs: 50
+eval_every: 10
+eval: true
+n_eval: 50
