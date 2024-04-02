@@ -12,6 +12,7 @@ from libero.lifelong.algos.base import Sequential, register_algo
 from libero.lifelong.metric import *
 from libero.lifelong.models import *
 from libero.lifelong.utils import *
+import loralib as lora
 
 
 class PreTrainMultitask(Sequential):
@@ -152,7 +153,7 @@ class PreTrainMultitask(Sequential):
             successes[idx_at_best_succ:] = success_at_best_succ
         return successes.sum() / cumulated_counter, losses.sum() / cumulated_counter
 
-    def adapt(self, adapt_datasets, benchmark, adapt_task_id):
+    def adapt(self, adapt_datasets, benchmark, adapt_task_id, which_bias_train):
         self.start_task(-1)
         concat_dataset = ConcatDataset(adapt_datasets)
 
@@ -186,9 +187,6 @@ class PreTrainMultitask(Sequential):
             t0 = time.time()
             if epoch > 0 or (self.cfg.pretrain):  # update
                 self.policy.train()
-                for name, param in self.policy.named_parameters():
-                    if param.requires_grad:
-                        print(f"Parameter name: {name}")
                 training_loss = 0.0
                 for (idx, data) in enumerate(train_dataloader):
                     loss = self.observe(data)
@@ -196,7 +194,7 @@ class PreTrainMultitask(Sequential):
                 training_loss /= len(train_dataloader)
             else:  # just evaluate the zero-shot performance on 0-th epoch
                 training_loss = 0.0
-
+                #
                 for (idx, data) in enumerate(train_dataloader):
                     loss = self.eval_observe(data)
                     training_loss += loss
@@ -209,12 +207,15 @@ class PreTrainMultitask(Sequential):
 
             if epoch % self.cfg.eval.eval_every == 0:  # evaluate BC loss
                 t0 = time.time()
+                model_checkpoint_name_ep = os.path.join(
+                    self.experiment_dir, f"lora_model_ep{epoch}.pth"
+                )
+
+                # only save the lora parameters
+                torch.save(lora.lora_state_dict(self.policy, bias=which_bias_train), model_checkpoint_name_ep)
+
                 self.policy.eval()
 
-                model_checkpoint_name_ep = os.path.join(
-                    self.experiment_dir, f"multitask_model_ep{epoch}.pth"
-                )
-                torch_save_model(self.policy, model_checkpoint_name_ep, cfg=self.cfg)
                 losses.append(training_loss)
 
                 # for multitask learning, we provide an option whether to evaluate

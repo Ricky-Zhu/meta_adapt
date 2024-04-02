@@ -5,7 +5,7 @@ import loralib as lora
 
 
 class LoraAttention(nn.Module):
-    def __init__(self, dim, num_heads=8, head_output_size=64, dropout=0.0):
+    def __init__(self, dim, num_heads=8, head_output_size=64, dropout=0.0, lora_rank=10):
         super().__init__()
 
         self.num_heads = num_heads
@@ -18,7 +18,8 @@ class LoraAttention(nn.Module):
             nn.Linear(num_heads * head_output_size, dim), nn.Dropout(dropout)
         )
 
-        self.qkv_lora = lora.MergedLinear(dim, num_heads * head_output_size * 3, r=8, enable_lora=[True, False, True])
+        self.qkv_lora = lora.MergedLinear(dim, num_heads * head_output_size * 3, r=lora_rank,
+                                          enable_lora=[True, False, True])
 
     def forward(self, x, mask=None):
         B, N, C = x.shape
@@ -56,10 +57,10 @@ class LoraAttention(nn.Module):
 
 
 class LoraTransformerFeedForwardNN(TransformerFeedForwardNN):
-    def __init__(self, dim, hidden_dim, dropout):
+    def __init__(self, dim, hidden_dim, dropout, lora_rank):
         super(LoraTransformerFeedForwardNN, self).__init__(dim, hidden_dim, dropout)
-        self.lora_1 = lora.Linear(dim, hidden_dim, r=4)
-        self.lora_2 = lora.Linear(hidden_dim, dim, r=4)
+        self.lora_1 = lora.Linear(dim, hidden_dim, r=lora_rank)
+        self.lora_2 = lora.Linear(hidden_dim, dim, r=lora_rank)
 
     def forward(self, x):
         x_lora1 = self.lora_1(x)
@@ -89,7 +90,7 @@ class LoraTransformerDecoder(nn.Module):
 
         self.layers = nn.ModuleList([])
         self.drop_path = DropPath(dropout) if dropout > 0.0 else nn.Identity()
-
+        self.lora_rank = kwargs['lora_rank']
         self.attention_output = {}
 
         for _ in range(num_layers):
@@ -102,10 +103,11 @@ class LoraTransformerDecoder(nn.Module):
                             num_heads=num_heads,
                             head_output_size=head_output_size,
                             dropout=dropout,
+                            lora_rank=self.lora_rank,
                         ),
                         Norm(input_size),
                         LoraTransformerFeedForwardNN(
-                            input_size, mlp_hidden_size, dropout=dropout
+                            input_size, mlp_hidden_size, dropout=dropout, lora_rank=self.lora_rank
                         ),
                     ]
                 )
@@ -152,59 +154,6 @@ class LoraTransformerDecoder(nn.Module):
     @property
     def device(self):
         return next(self.parameters()).device
-
-
-class LoraBCT(BCTransformerPolicy):
-    def __init__(self, cfg, shape_meta):
-        super(LoraBCT, self).__init__(cfg, shape_meta)
-        policy_cfg = cfg.policy
-        # introduce the lora adapters for spatial and temporal encoders (maybe also the policy head)
-        self.temporal_transformer = LoraTransformerDecoder(
-            input_size=policy_cfg.embed_size,
-            num_layers=policy_cfg.transformer_num_layers,
-            num_heads=policy_cfg.transformer_num_heads,
-            head_output_size=policy_cfg.transformer_head_output_size,
-            mlp_hidden_size=policy_cfg.transformer_mlp_hidden_size,
-            dropout=policy_cfg.transformer_dropout,
-        )
-
-    def temporal_encode(self, x):
-        pos_emb = self.temporal_position_encoding_fn(x)
-        x = x + pos_emb.unsqueeze(1)  # (B, T, num_modality, E)
-        sh = x.shape
-        self.temporal_transformer.compute_mask(x.shape)
-
-        x = TensorUtils.join_dimensions(x, 1, 2)  # (B, T*num_modality, E)
-        x = self.temporal_transformer(x)
-        x = x.reshape(*sh)
-        return x[:, :, 0]  # (B, T, E)
-
-    def spatial_encode(self, data):
-        # 1. encode extra
-        extra = self.extra_encoder(data["obs"])  # (B, T, num_extra, E)
-
-        # 2. encode language, treat it as action token
-        B, T = extra.shape[:2]
-        text_encoded = self.language_encoder(data)  # (B, E)
-        text_encoded = text_encoded.view(B, 1, 1, -1).expand(
-            -1, T, -1, -1
-        )  # (B, T, 1, E)
-        encoded = [text_encoded, extra]
-
-        # 3. encode image
-        for img_name in self.image_encoders.keys():
-            x = data["obs"][img_name]
-            B, T, C, H, W = x.shape
-            img_encoded = self.image_encoders[img_name]["encoder"](
-                x.reshape(B * T, C, H, W),
-                langs=data["task_emb"]
-                .reshape(B, 1, -1)
-                .repeat(1, T, 1)
-                .reshape(B * T, -1),
-            ).view(B, T, 1, -1)
-            encoded.append(img_encoded)
-        encoded = torch.cat(encoded, -2)  # (B, T, num_modalities, E)
-        return encoded
 
 
 if __name__ == "__main__":

@@ -1,0 +1,1 @@
+python ../adaptation/adapt_train.py adaptation.lora_rank=10 train.n_epochs=50 adaptation.adaptation_task_id=6

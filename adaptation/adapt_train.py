@@ -71,13 +71,17 @@ policy_map = {
 }
 
 
-def main():
+@hydra.main(config_path="../configs", config_name="adaptation", version_base=None)
+def main(adaptation_cfg):
     # define the pre-trained model path
-    model_path = '/home/ruiqi/projects/meta_adapt/scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_002/multitask_model_ep5.pth'
+    model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_002/multitask_model_ep5.pth'
 
     sd, cfg, previous_mask = torch_load_model(
         model_path, map_location=None
     )
+
+    # load specific adaptation configs
+    cfg.adaptation = adaptation_cfg.adaptation
 
     control_seed(cfg.seed)
     cfg.folder = get_libero_path("datasets")
@@ -92,7 +96,8 @@ def main():
     algo.policy.previous_mask = previous_mask
     algo.policy.load_state_dict(sd, strict=False)
 
-    lora.mark_only_lora_as_trainable(algo.policy, bias='lora_only')
+    which_bias_train = 'lora_only' if not cfg.adaptation.train_all_bias else 'all'
+    lora.mark_only_lora_as_trainable(algo.policy, bias=which_bias_train)
 
     #################################
     benchmark = get_benchmark(cfg.task_creation.task_suite)(cfg.task_creation.task_order)
@@ -117,6 +122,7 @@ def main():
                 obs_modality=cfg.data.obs.modality,
                 initialize_obs_utils=(i == 0),
                 seq_len=cfg.data.seq_len,
+                load_specific_num=cfg.adaptation.adapt_demo_num_each_task
             )
         except Exception as e:
             print(
@@ -131,11 +137,13 @@ def main():
     task_embs = get_task_embs(cfg, descriptions)
     benchmark.set_task_embs(task_embs)
 
-    post_adaptation_dataset = [SequenceVLDataset(manip_datasets[6], task_embs[6])]
+    post_adaptation_dataset = [SequenceVLDataset(manip_datasets[cfg.adaptation.adaptation_task_id],
+                                                 task_embs[cfg.adaptation.adaptation_task_id])]
 
     ##################################
     # prepare experiment dir and train
-    algo.adapt(post_adaptation_dataset, benchmark, adapt_task_id=6)
+    algo.adapt(post_adaptation_dataset, benchmark, adapt_task_id=cfg.adaptation.adaptation_task_id,
+               which_bias_train=which_bias_train)
 
 
 if __name__ == "__main__":
