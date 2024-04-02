@@ -74,7 +74,7 @@ policy_map = {
 @hydra.main(config_path="../configs", config_name="adaptation", version_base=None)
 def main(adaptation_cfg):
     # define the pre-trained model path
-    model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_002/multitask_model_ep5.pth'
+    model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model_ep10.pth'
 
     sd, cfg, previous_mask = torch_load_model(
         model_path, map_location=None

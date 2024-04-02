@@ -165,7 +165,7 @@ def main():
                 "camera_heights": cfg.data.img_h,
                 "camera_widths": cfg.data.img_w,
             }
-            env_num = 2  # TODO change to 20
+            env_num = 10  # TODO change to 20
 
             env = SubprocVectorEnv(
                 [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
