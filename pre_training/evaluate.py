@@ -46,7 +46,7 @@ import robomimic.utils.obs_utils as ObsUtils
 import robomimic.utils.tensor_utils as TensorUtils
 
 import time
-
+from glob import glob
 benchmark_map = {
     "libero_10": "LIBERO_10",
     "libero_spatial": "LIBERO_SPATIAL",
@@ -113,102 +113,107 @@ def main():
 
     # e.g., experiments/LIBERO_SPATIAL/Multitask/BCRNNPolicy_seed100/
 
-    model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_002/multitask_model.pth'
+    model_path_folder = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003'
+    files = glob(model_path_folder + '/*.pth')
+    for model_path in files:
+        print(model_path)
 
-    sd, cfg, previous_mask = torch_load_model(
-        model_path, map_location=None
-    )
-
-    control_seed(cfg.seed)
-    cfg.folder = get_libero_path("datasets")
-    cfg.bddl_folder = get_libero_path("bddl_files")
-    cfg.init_states_folder = get_libero_path("init_states")
-
-    algo = safe_device(eval('PreTrainMultitask')(10, cfg), 'cuda')
-    algo.policy.previous_mask = previous_mask
-
-    algo.policy.load_state_dict(sd)
-
-    if not hasattr(cfg.data, "task_order_index"):
-        cfg.data.task_order_index = 0
-
-    # get the benchmark the task belongs to
-    benchmark = get_benchmark(cfg.benchmark_name)(cfg.data.task_order_index)
-    descriptions = [benchmark.get_task(i).language for i in range(10)]
-    task_embs = get_task_embs(cfg, descriptions)
-    benchmark.set_task_embs(task_embs)
-
-    # load the dataset via using function get_dataset, so that the obsutils in robomimic can be initialized
-    all_obs_keys = []
-    for modality_name, modality_list in cfg.data.obs.modality.items():
-        all_obs_keys += modality_list
-
-    datasets_default_path = get_libero_path("datasets")
-    dataset_path = os.path.join(datasets_default_path, benchmark.get_task_demonstration(0))
-    ObsUtils.initialize_obs_utils_with_obs_specs({"obs": cfg.data.obs.modality})
-    shape_meta = FileUtils.get_shape_metadata_from_dataset(
-        dataset_path=dataset_path, all_obs_keys=all_obs_keys, verbose=False
-    )
-    ### ======================= start evaluation ============================
-    start_time = time.time()
-    algo.eval()
-    for i in range(cfg.task_creation.pre_training_num):
-        task = benchmark.get_task(i)
-        env_args = {
-            "bddl_file_name": os.path.join(
-                cfg.bddl_folder, task.problem_folder, task.bddl_file
-            ),
-            "camera_heights": cfg.data.img_h,
-            "camera_widths": cfg.data.img_w,
-        }
-        env_num = 2  # TODO change to 20
-
-        env = SubprocVectorEnv(
-            [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
+        sd, cfg, previous_mask = torch_load_model(
+            model_path, map_location=None
         )
-        env.reset()
-        env.seed(cfg.seed)
-        algo.reset()
 
-        init_states_path = os.path.join(
-            cfg.init_states_folder, task.problem_folder, task.init_states_file
+        control_seed(cfg.seed)
+        cfg.folder = get_libero_path("datasets")
+        cfg.bddl_folder = get_libero_path("bddl_files")
+        cfg.init_states_folder = get_libero_path("init_states")
+
+        algo = safe_device(eval('PreTrainMultitask')(10, cfg), 'cuda')
+        algo.policy.previous_mask = previous_mask
+
+        algo.policy.load_state_dict(sd)
+
+        if not hasattr(cfg.data, "task_order_index"):
+            cfg.data.task_order_index = 0
+
+        # get the benchmark the task belongs to
+        benchmark = get_benchmark(cfg.benchmark_name)(cfg.data.task_order_index)
+        descriptions = [benchmark.get_task(i).language for i in range(10)]
+        task_embs = get_task_embs(cfg, descriptions)
+        benchmark.set_task_embs(task_embs)
+
+        # load the dataset via using function get_dataset, so that the obsutils in robomimic can be initialized
+        all_obs_keys = []
+        for modality_name, modality_list in cfg.data.obs.modality.items():
+            all_obs_keys += modality_list
+
+        datasets_default_path = get_libero_path("datasets")
+        dataset_path = os.path.join(datasets_default_path, benchmark.get_task_demonstration(0))
+        ObsUtils.initialize_obs_utils_with_obs_specs({"obs": cfg.data.obs.modality})
+        shape_meta = FileUtils.get_shape_metadata_from_dataset(
+            dataset_path=dataset_path, all_obs_keys=all_obs_keys, verbose=False
         )
-        init_states = torch.load(init_states_path)
-        indices = np.arange(env_num) % init_states.shape[0]
-        init_states_ = init_states[indices]
+        ### ======================= start evaluation ============================
+        start_time = time.time()
+        algo.eval()
+        for i in range(cfg.task_creation.pre_training_num):
+            task = benchmark.get_task(i)
+            env_args = {
+                "bddl_file_name": os.path.join(
+                    cfg.bddl_folder, task.problem_folder, task.bddl_file
+                ),
+                "camera_heights": cfg.data.img_h,
+                "camera_widths": cfg.data.img_w,
+            }
+            env_num = 10  # TODO change to 20
 
-        dones = [False] * env_num
-        steps = 0
-        obs = env.set_init_state(init_states_)
-        task_emb = benchmark.get_task_emb(i)
+            env = SubprocVectorEnv(
+                [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
+            )
+            env.reset()
+            env.seed(cfg.seed)
+            algo.reset()
 
-        num_success = 0
-        for _ in range(5):  # simulate the physics without any actions
-            env.step(np.zeros((env_num, 7)))
+            init_states_path = os.path.join(
+                cfg.init_states_folder, task.problem_folder, task.init_states_file
+            )
+            init_states = torch.load(init_states_path)
+            indices = np.arange(env_num) % init_states.shape[0]
+            init_states_ = init_states[indices]
 
-        with torch.no_grad():
-            while steps < cfg.eval.max_steps:
-                steps += 1
+            dones = [False] * env_num
+            steps = 0
+            obs = env.set_init_state(init_states_)
+            task_emb = benchmark.get_task_emb(i)
 
-                data = raw_obs_to_tensor_obs(obs, task_emb, cfg)
-                actions = algo.policy.get_action(data)
-                obs, reward, done, info = env.step(actions)
+            num_success = 0
+            for _ in range(5):  # simulate the physics without any actions
+                env.step(np.zeros((env_num, 7)))
 
-                # check whether succeed
+            with torch.no_grad():
+                while steps < cfg.eval.max_steps:
+                    steps += 1
+
+                    data = raw_obs_to_tensor_obs(obs, task_emb, cfg)
+                    actions = algo.policy.get_action(data)
+                    obs, reward, done, info = env.step(actions)
+
+                    # check whether succeed
+                    for k in range(env_num):
+                        dones[k] = dones[k] or done[k]
+                    if all(dones):
+                        break
+
                 for k in range(env_num):
-                    dones[k] = dones[k] or done[k]
-                if all(dones):
-                    break
+                    num_success += int(dones[k])
 
-            for k in range(env_num):
-                num_success += int(dones[k])
+            success_rate = num_success / env_num
+            env.close()
+            print(f'task {i}: {success_rate}')
 
-        success_rate = num_success / env_num
-        env.close()
-        print(f'task {i}: {success_rate}')
+        print('*************************')
 
-    end_time = time.time()
-    print(f'cost time {end_time-start_time}')
+        # end_time = time.time()
+        # print(f'cost time {end_time - start_time}')
 
 
 if __name__ == "__main__":

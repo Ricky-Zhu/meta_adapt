@@ -55,21 +55,23 @@ class LoraAttention(nn.Module):
         return self.output_layer(out)
 
 
-class LoraTransformerFeedForwardNN(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout=0.0):
-        super().__init__()
-        # Remember the residual connection
-        layers = [
-            nn.Linear(dim, hidden_dim),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_dim, dim),
-            nn.Dropout(dropout),
-        ]
-        self.net = nn.Sequential(*layers)
+class LoraTransformerFeedForwardNN(TransformerFeedForwardNN):
+    def __init__(self, dim, hidden_dim, dropout):
+        super(LoraTransformerFeedForwardNN, self).__init__(dim, hidden_dim, dropout)
+        self.lora_1 = lora.Linear(dim, hidden_dim, r=4)
+        self.lora_2 = lora.Linear(hidden_dim, dim, r=4)
 
     def forward(self, x):
-        return self.net(x)
+        x_lora1 = self.lora_1(x)
+        x = self.l1(x)
+        x = x + x_lora1
+        x = self.gelu1(x)
+        x = self.dp1(x)
+        x_lora2 = self.lora_2(x)
+        x = self.l2(x)
+        x = x + x_lora2
+        x = self.dp2(x)
+        return x
 
 
 class LoraTransformerDecoder(nn.Module):
@@ -95,14 +97,14 @@ class LoraTransformerDecoder(nn.Module):
                 nn.ModuleList(
                     [
                         Norm(input_size),
-                        Attention(
+                        LoraAttention(
                             input_size,
                             num_heads=num_heads,
                             head_output_size=head_output_size,
                             dropout=dropout,
                         ),
                         Norm(input_size),
-                        TransformerFeedForwardNN(
+                        LoraTransformerFeedForwardNN(
                             input_size, mlp_hidden_size, dropout=dropout
                         ),
                     ]
@@ -155,7 +157,16 @@ class LoraTransformerDecoder(nn.Module):
 class LoraBCT(BCTransformerPolicy):
     def __init__(self, cfg, shape_meta):
         super(LoraBCT, self).__init__(cfg, shape_meta)
+        policy_cfg = cfg.policy
         # introduce the lora adapters for spatial and temporal encoders (maybe also the policy head)
+        self.temporal_transformer = LoraTransformerDecoder(
+            input_size=policy_cfg.embed_size,
+            num_layers=policy_cfg.transformer_num_layers,
+            num_heads=policy_cfg.transformer_num_heads,
+            head_output_size=policy_cfg.transformer_head_output_size,
+            mlp_hidden_size=policy_cfg.transformer_mlp_hidden_size,
+            dropout=policy_cfg.transformer_dropout,
+        )
 
     def temporal_encode(self, x):
         pos_emb = self.temporal_position_encoding_fn(x)
@@ -194,6 +205,7 @@ class LoraBCT(BCTransformerPolicy):
             encoded.append(img_encoded)
         encoded = torch.cat(encoded, -2)  # (B, T, num_modalities, E)
         return encoded
+
 
 if __name__ == "__main__":
     model = LoraAttention(dim=128)
