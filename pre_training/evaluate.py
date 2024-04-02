@@ -116,7 +116,6 @@ def main():
     model_path_folder = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003'
     files = glob(model_path_folder + '/*.pth')
     for model_path in files:
-        print(model_path)
 
         sd, cfg, previous_mask = torch_load_model(
             model_path, map_location=None
@@ -154,6 +153,8 @@ def main():
         )
         ### ======================= start evaluation ============================
         start_time = time.time()
+        print('#####################')
+        print(f'{model_path.split("/")[-1]}')
         algo.eval()
         for i in range(cfg.task_creation.pre_training_num):
             task = benchmark.get_task(i)
@@ -164,7 +165,7 @@ def main():
                 "camera_heights": cfg.data.img_h,
                 "camera_widths": cfg.data.img_w,
             }
-            env_num = 10  # TODO change to 20
+            env_num = 2  # TODO change to 20
 
             env = SubprocVectorEnv(
                 [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
