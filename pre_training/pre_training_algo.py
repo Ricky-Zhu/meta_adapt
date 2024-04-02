@@ -243,7 +243,7 @@ class PreTrainMultitask(Sequential):
                     tmp_successes = np.array(successes)
                     tmp_successes[idx_at_best_succ:] = successes[idx_at_best_succ]
 
-                    if self.cfg.lifelong.eval_in_train:
+                    if self.cfg.adaptation.eval_in_train:
                         print(
                             f"[info] Epoch: {epoch:3d} | succ: {success_rate:4.2f} ± {ci:4.2f} | best succ: {prev_success_rate} "
                             + f"| succ. AoC {tmp_successes.sum() / cumulated_counter:4.2f} | time: {(t1 - t0) / 60:4.2f}",
