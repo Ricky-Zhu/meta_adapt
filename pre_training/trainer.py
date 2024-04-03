@@ -125,7 +125,7 @@ def main(hydra_cfg):
         json.dump(cfg, f, cls=NpEncoder, indent=4)
 
     algo.train()
-    s_fwd, l_fwd = algo.learn_all_tasks(pre_training_dataset, benchmark)
+    algo.learn_all_tasks(pre_training_dataset, benchmark)
 
     print("[info] finished learning\n")
     if cfg.use_wandb:

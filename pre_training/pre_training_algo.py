@@ -79,10 +79,11 @@ class PreTrainMultitask(Sequential):
                 t0 = time.time()
                 self.policy.eval()
 
-                model_checkpoint_name_ep = os.path.join(
-                    self.experiment_dir, f"multitask_model_ep{epoch}.pth"
-                )
-                torch_save_model(self.policy, model_checkpoint_name_ep, cfg=self.cfg)
+                if self.cfg.eval.save_ep_model:
+                    model_checkpoint_name_ep = os.path.join(
+                        self.experiment_dir, f"multitask_model_ep{epoch}.pth"
+                    )
+                    torch_save_model(self.policy, model_checkpoint_name_ep, cfg=self.cfg)
                 losses.append(training_loss)
 
                 # for multitask learning, we provide an option whether to evaluate
@@ -119,14 +120,6 @@ class PreTrainMultitask(Sequential):
             if self.scheduler is not None and epoch > 0:
                 self.scheduler.step()
 
-        # eval the model in the envs
-        final_success_rates = evaluate_pretrain_multitask_training_success(
-            self.cfg, self, benchmark, pretrain_tasks
-        )
-        final_success_rate = np.mean(final_success_rates)
-        print('Final success rate:', final_success_rates)
-        print('Final avg success rate:', final_success_rate)
-
         # load the best policy if there is any
         if self.cfg.lifelong.eval_in_train:
             self.policy.load_state_dict(torch_load_model(model_checkpoint_name)[0])
@@ -151,7 +144,7 @@ class PreTrainMultitask(Sequential):
             success_at_best_succ = successes[idx_at_best_succ]
             losses[idx_at_best_succ:] = loss_at_best_succ
             successes[idx_at_best_succ:] = success_at_best_succ
-        return successes.sum() / cumulated_counter, losses.sum() / cumulated_counter
+
 
     def adapt(self, adapt_datasets, benchmark, adapt_task_id, which_bias_train):
         self.start_task(-1)

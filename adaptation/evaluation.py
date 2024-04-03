@@ -73,7 +73,7 @@ policy_map = {
 @hydra.main(config_path="../configs", config_name="adaptation", version_base=None)
 def main(adapt_cfg):
     # e.g., experiments/LIBERO_SPATIAL/Multitask/BCRNNPolicy_seed100/
-    pre_trained_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model_ep10.pth'
+    pre_trained_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
     adaptor_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/LoraBCTPolicy_seed10000/run_011/lora_model_ep50.pth'
 
     # load the pre-trained model and adaptor model
@@ -134,7 +134,7 @@ def main(adapt_cfg):
         "camera_heights": cfg.data.img_h,
         "camera_widths": cfg.data.img_w,
     }
-    env_num = 50  # TODO change to 20
+    env_num = 20  # TODO change to 20
 
     env = SubprocVectorEnv(
         [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
