@@ -159,7 +159,7 @@ class PreTrainMultitask(Sequential):
 
         # learn on all tasks, only used in multitask learning
         model_checkpoint_name = os.path.join(
-            self.experiment_dir, f"multitask_model.pth"
+            self.experiment_dir, f"lora_model.pth"
         )
         adapt_task = [adapt_task_id]
 
@@ -212,8 +212,10 @@ class PreTrainMultitask(Sequential):
                 )
 
                 # only save the lora parameters
-                torch.save(lora.lora_state_dict(self.policy, bias=which_bias_train), model_checkpoint_name_ep)
-
+                torch.save({
+                    "state_dict": lora.lora_state_dict(self.policy, bias=which_bias_train),
+                    "cfg": self.cfg,
+                }, model_checkpoint_name_ep)
                 self.policy.eval()
 
                 losses.append(training_loss)
@@ -232,7 +234,8 @@ class PreTrainMultitask(Sequential):
                     successes.append(success_rate)
 
                     if prev_success_rate < success_rate and (not self.cfg.pretrain):
-                        torch_save_model(self.policy, model_checkpoint_name, cfg=self.cfg)
+                        # torch_save_model(self.policy, model_checkpoint_name, cfg=self.cfg)
+                        torch.save(lora.lora_state_dict(self.policy, bias=which_bias_train), model_checkpoint_name)
                         prev_success_rate = success_rate
                         idx_at_best_succ = len(losses) - 1
 
@@ -286,4 +289,3 @@ class PreTrainMultitask(Sequential):
             success_at_best_succ = successes[idx_at_best_succ]
             losses[idx_at_best_succ:] = loss_at_best_succ
             successes[idx_at_best_succ:] = success_at_best_succ
-
