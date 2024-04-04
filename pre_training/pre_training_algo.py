@@ -251,14 +251,14 @@ class PreTrainMultitask(Sequential):
             if self.scheduler is not None and epoch > 0:
                 self.scheduler.step()
 
-        # eval the model in the envs
-        final_success_rates = evaluate_pretrain_multitask_training_success(
-            self.cfg, self, benchmark, adapt_task
-        )
-        final_success_rate = np.mean(final_success_rates)
-        print(self.cfg.experiment_dir)
-        print('Final success rate:', final_success_rates)
-        print('Final avg success rate:', final_success_rate)
+        # # eval the model in the envs
+        # final_success_rates = evaluate_pretrain_multitask_training_success(
+        #     self.cfg, self, benchmark, adapt_task
+        # )
+        # final_success_rate = np.mean(final_success_rates)
+        # print(self.cfg.experiment_dir)
+        # print('Final success rate:', final_success_rates)
+        # print('Final avg success rate:', final_success_rate)
 
         # load the best policy if there is any
         if self.cfg.lifelong.eval_in_train:
