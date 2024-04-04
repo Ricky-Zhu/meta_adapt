@@ -73,7 +73,7 @@ policy_map = {
 def main():
     # e.g., experiments/LIBERO_SPATIAL/Multitask/BCRNNPolicy_seed100/
     pre_trained_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
-    adaptor_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/LoraBCTPolicy_seed10000/run_009/lora_model.pth'
+    adaptor_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/LoraBCTPolicy_seed10000/run_012/lora_model.pth'
 
     # load the pre-trained model and adaptor model
     sd, pre_train_cfg, previous_mask = torch_load_model(
@@ -122,65 +122,10 @@ def main():
     )
     ### ======================= start evaluation ============================
     task_id = [cfg.adaptation.adaptation_task_id]
+
+    # cfg.eval.n_eval=20 if want to set a different eval num as that in the exp
     success_rate = evaluate_success(cfg, algo, benchmark, task_id)
     print(success_rate)
-    # start_time = time.time()
-    # print('#####################')
-    # algo.eval()
-    #
-    # task = benchmark.get_task(cfg.adaptation.adaptation_task_id)
-    # env_args = {
-    #     "bddl_file_name": os.path.join(
-    #         cfg.bddl_folder, task.problem_folder, task.bddl_file
-    #     ),
-    #     "camera_heights": cfg.data.img_h,
-    #     "camera_widths": cfg.data.img_w,
-    # }
-    # env_num = 10  # TODO change to 20
-    #
-    # env = SubprocVectorEnv(
-    #     [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
-    # )
-    # env.reset()
-    # env.seed(cfg.seed)
-    # algo.reset()
-    #
-    # init_states_path = os.path.join(
-    #     cfg.init_states_folder, task.problem_folder, task.init_states_file
-    # )
-    # init_states = torch.load(init_states_path)
-    # indices = np.arange(env_num) % init_states.shape[0]
-    # init_states_ = init_states[indices]
-    #
-    # dones = [False] * env_num
-    # steps = 0
-    # obs = env.set_init_state(init_states_)
-    # task_emb = benchmark.get_task_emb(cfg.adaptation.adaptation_task_id)
-    #
-    # num_success = 0
-    # for _ in range(5):  # simulate the physics without any actions
-    #     env.step(np.zeros((env_num, 7)))
-    #
-    # with torch.no_grad():
-    #     while steps < cfg.eval.max_steps:
-    #         steps += 1
-    #
-    #         data = raw_obs_to_tensor_obs(obs, task_emb, cfg)
-    #         actions = algo.policy.get_action(data)
-    #         obs, reward, done, info = env.step(actions)
-    #
-    #         # check whether succeed
-    #         for k in range(env_num):
-    #             dones[k] = dones[k] or done[k]
-    #         if all(dones):
-    #             break
-    #
-    #     for k in range(env_num):
-    #         num_success += int(dones[k])
-    #
-    # success_rate = num_success / env_num
-    # env.close()
-    # print(f'{success_rate}')
 
 
 if __name__ == "__main__":

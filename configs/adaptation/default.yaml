@@ -5,5 +5,5 @@ adaptation_task_id: 8
 n_epochs: 50
 eval_every: 10
 eval: true
-n_eval: 10
+n_eval: 50
 eval_in_train: true
