@@ -134,9 +134,9 @@ def main():
         "camera_heights": cfg.data.img_h,
         "camera_widths": cfg.data.img_w,
     }
-    env_num = 50  # TODO change to 20
+    env_num = 10  # TODO change to 20
 
-    env = DummyVectorEnv(
+    env = SubprocVectorEnv(
         [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
     )
     env.reset()
@@ -153,7 +153,7 @@ def main():
     dones = [False] * env_num
     steps = 0
     obs = env.set_init_state(init_states_)
-    task_emb = benchmark.get_task_emb(9)
+    task_emb = benchmark.get_task_emb(cfg.adaptation.adaptation_task_id)
 
     num_success = 0
     for _ in range(5):  # simulate the physics without any actions

@@ -115,6 +115,7 @@ def main():
 
     model_path_folder = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003'
     files = glob(model_path_folder + '/*.pth')
+
     for model_path in files:
 
         sd, cfg, previous_mask = torch_load_model(
