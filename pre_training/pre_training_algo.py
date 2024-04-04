@@ -230,7 +230,7 @@ class PreTrainMultitask(Sequential):
                         torch.save({
                             "state_dict": lora.lora_state_dict(self.policy, bias=which_bias_train),
                             "cfg": self.cfg,
-                        }, model_checkpoint_name_ep)
+                        }, model_checkpoint_name)
                         prev_success_rate = success_rate
                         idx_at_best_succ = len(losses) - 1
 

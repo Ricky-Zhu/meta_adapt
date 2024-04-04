@@ -74,17 +74,16 @@ def main():
     # e.g., experiments/LIBERO_SPATIAL/Multitask/BCRNNPolicy_seed100/
     pre_trained_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
     adaptor_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/LoraBCTPolicy_seed10000/run_009/lora_model.pth'
-    cfg_file_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/LoraBCTPolicy_seed10000/run_009/lora_model_ep0.pth'
+
     # load the pre-trained model and adaptor model
     sd, pre_train_cfg, previous_mask = torch_load_model(
         pre_trained_model_path, map_location=None
     )
 
     # get the cfg
-    cfg_dict = torch.load(cfg_file_path, map_location=None)
-    cfg = cfg_dict['cfg']
-
-    lora_model_sd = torch.load(adaptor_model_path, map_location=None)
+    model_dict = torch.load(adaptor_model_path, map_location=None)
+    cfg = model_dict['cfg']
+    lora_model_sd = model_dict['state_dict']
 
     which_bias_train = 'lora_only' if not cfg.adaptation.train_all_bias else 'all'
 
