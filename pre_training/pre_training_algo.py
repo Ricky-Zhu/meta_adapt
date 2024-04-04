@@ -228,7 +228,10 @@ class PreTrainMultitask(Sequential):
 
                     if prev_success_rate < success_rate and (not self.cfg.pretrain):
                         # torch_save_model(self.policy, model_checkpoint_name, cfg=self.cfg)
-                        torch.save(lora.lora_state_dict(self.policy, bias=which_bias_train), model_checkpoint_name)
+                        torch.save({
+                            "state_dict": lora.lora_state_dict(self.policy, bias=which_bias_train),
+                            "cfg": self.cfg,
+                        }, model_checkpoint_name_ep)
                         prev_success_rate = success_rate
                         idx_at_best_succ = len(losses) - 1
 

@@ -70,21 +70,21 @@ policy_map = {
 }
 
 
-@hydra.main(config_path="../configs", config_name="adaptation", version_base=None)
-def main(adapt_cfg):
+def main():
     # e.g., experiments/LIBERO_SPATIAL/Multitask/BCRNNPolicy_seed100/
     pre_trained_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
-    adaptor_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/LoraBCTPolicy_seed10000/run_011/lora_model_ep50.pth'
-
+    adaptor_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/LoraBCTPolicy_seed10000/run_009/lora_model.pth'
+    cfg_file_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/LoraBCTPolicy_seed10000/run_009/lora_model_ep0.pth'
     # load the pre-trained model and adaptor model
-    sd, cfg, previous_mask = torch_load_model(
+    sd, pre_train_cfg, previous_mask = torch_load_model(
         pre_trained_model_path, map_location=None
     )
 
-    cfg.policy.policy_type = 'LoraBCTPolicy'
-    # remove the previous experiment dir so that the initialization of algo will create a new exp dir
-    cfg.pop('experiment_dir')
-    cfg.adaptation = adapt_cfg.adaptation
+    # get the cfg
+    cfg_dict = torch.load(cfg_file_path, map_location=None)
+    cfg = cfg_dict['cfg']
+
+    lora_model_sd = torch.load(adaptor_model_path, map_location=None)
 
     which_bias_train = 'lora_only' if not cfg.adaptation.train_all_bias else 'all'
 
@@ -97,7 +97,7 @@ def main(adapt_cfg):
     algo.policy.previous_mask = previous_mask
 
     algo.policy.load_state_dict(sd, strict=False)
-    algo.policy.load_state_dict(torch.load(adaptor_model_path),strict=False)
+    algo.policy.load_state_dict(lora_model_sd, strict=False)
 
     ##########################
 
@@ -126,7 +126,7 @@ def main(adapt_cfg):
     print('#####################')
     algo.eval()
 
-    task = benchmark.get_task(9)
+    task = benchmark.get_task(cfg.adaptation.adaptation_task_id)
     env_args = {
         "bddl_file_name": os.path.join(
             cfg.bddl_folder, task.problem_folder, task.bddl_file
@@ -134,9 +134,9 @@ def main(adapt_cfg):
         "camera_heights": cfg.data.img_h,
         "camera_widths": cfg.data.img_w,
     }
-    env_num = 20  # TODO change to 20
+    env_num = 50  # TODO change to 20
 
-    env = SubprocVectorEnv(
+    env = DummyVectorEnv(
         [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
     )
     env.reset()
