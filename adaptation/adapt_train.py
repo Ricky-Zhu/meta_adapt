@@ -132,6 +132,7 @@ def main(adaptation_cfg):
     ##################################
     # model with lora definition
     cfg.policy.policy_type = 'LoraBCTPolicy'
+    cfg.eval.n_eval = cfg.adaptation.n_eval
     # remove the previous experiment dir so that the initialization of algo will create a new exp dir
     cfg.pop('experiment_dir')
     algo = safe_device(eval('PreTrainMultitask')(10, cfg), 'cuda')

@@ -145,7 +145,6 @@ class PreTrainMultitask(Sequential):
             losses[idx_at_best_succ:] = loss_at_best_succ
             successes[idx_at_best_succ:] = success_at_best_succ
 
-
     def adapt(self, adapt_datasets, benchmark, adapt_task_id, which_bias_train):
         self.start_task(-1)
         concat_dataset = ConcatDataset(adapt_datasets)
@@ -209,7 +208,6 @@ class PreTrainMultitask(Sequential):
                     "state_dict": lora.lora_state_dict(self.policy, bias=which_bias_train),
                     "cfg": self.cfg,
                 }, model_checkpoint_name_ep)
-                self.policy.eval()
 
                 losses.append(training_loss)
 
@@ -218,7 +216,8 @@ class PreTrainMultitask(Sequential):
                 # this can be quite computationally expensive. Nevertheless, we
                 # save the checkpoints, so users can always evaluate afterwards.
                 if self.cfg.adaptation.eval:
-                    self.cfg.eval.n_eval = self.cfg.adaptation.n_eval
+                    self.policy.eval()
+
                     success_rates = evaluate_pretrain_multitask_training_success(
                         self.cfg, self, benchmark, adapt_task
                     )

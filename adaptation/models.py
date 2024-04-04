@@ -17,20 +17,19 @@ class LoraAttention(nn.Module):
         self.output_layer = nn.Sequential(
             nn.Linear(num_heads * head_output_size, dim), nn.Dropout(dropout)
         )
-
-        self.qkv_lora = lora.MergedLinear(dim, num_heads * head_output_size * 3, r=lora_rank,
-                                          enable_lora=[True, False, True])
+        self.q_lora = lora.Linear(dim, num_heads * head_output_size, r=lora_rank)
+        self.v_lora = lora.Linear(dim, num_heads * head_output_size, r=lora_rank)
 
     def forward(self, x, mask=None):
         B, N, C = x.shape
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, -1).permute(2, 0, 3, 1, 4)
 
-        qkv_lora = self.qkv_lora(x).reshape(B, N, 3, self.num_heads, -1).permute(2, 0, 3, 1, 4)
         q, k, v = (qkv[0], qkv[1], qkv[2])
-
+        q_lora = self.q_lora(x).reshape(B, N, 1, self.num_heads, -1).permute(2, 0, 3, 1, 4)[0]
+        v_lora = self.v_lora(x).reshape(B, N, 1, self.num_heads, -1).permute(2, 0, 3, 1, 4)[0]
         # manipulate q and v
-        q = q + qkv_lora[0]
-        v = v + qkv_lora[2]
+        q = q + q_lora
+        v = v + v_lora
 
         # q.dot(k.transpose)
         attn = (q @ k.transpose(-2, -1)) * self.att_scale
