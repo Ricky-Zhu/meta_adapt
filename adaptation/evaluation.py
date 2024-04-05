@@ -101,6 +101,8 @@ def main():
             exp_paths = [folder for folder in glob(os.path.join(run_path, '*.pth'))]
             for exp_path in exp_paths:
                 evaluate_one_repo_adaptor(pre_trained_model_path, exp_path)
+                print(exp_path)
+                print('************************')
 
 
 if __name__ == "__main__":
