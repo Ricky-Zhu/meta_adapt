@@ -90,18 +90,37 @@ def main():
 
         # cfg.eval.n_eval=20 if want to set a different eval num as that in the exp
         success_rate = evaluate_success_all_init_condtions(cfg, algo, benchmark, task_id)
-        print(f'task id:{cfg.adaptation.adaptation_task_id}, demo num: {cfg.adaptation.adapt_demo_num_each_task}, success_rate: {success_rate}')
+        task_id = cfg.adaptation.adaptation_task_id
+        demo_num = cfg.adaptation.adapt_demo_num_each_task
+        success_rate = success_rate
+        return task_id, demo_num, success_rate
+
+    def update_log_summary(log_dict, task_id, demo_num, success_rate):
+        if not f'task {task_id}' in log_dict.keys():
+            log_dict[f'task {task_id}'] = {}
+            log_dict[f'task {task_id}'][f'demo {demo_num}'] = success_rate
+        else:
+            if not f'demo {demo_num}' in log_dict[f'task {task_id}']:
+                log_dict[f'task {task_id}'][f'demo {demo_num}'] = success_rate
+            else:
+                if success_rate > log_dict[f'task {task_id}'][f'demo {demo_num}']:
+                    log_dict[f'task {task_id}'][f'demo {demo_num}'] = success_rate
+
+        return log_dict
 
     pre_trained_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
     adaptor_model_paths = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/LoraBCTPolicy_seed10000/'
+
+    log_summary = {}
 
     for root, dirs, files in os.walk(adaptor_model_paths):
         for directory in dirs:
             run_path = os.path.join(root, directory)
             exp_paths = [folder for folder in glob(os.path.join(run_path, '*.pth'))]
             for exp_path in exp_paths:
-                evaluate_one_repo_adaptor(pre_trained_model_path, exp_path)
                 print(exp_path)
+                task_id, demo_num, success_rate = evaluate_one_repo_adaptor(pre_trained_model_path, exp_path)
+                log_summary = update_log_summary(log_summary, task_id, demo_num, success_rate)
                 print('************************')
 
 
