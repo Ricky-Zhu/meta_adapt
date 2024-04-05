@@ -123,6 +123,10 @@ def main():
                 log_summary = update_log_summary(log_summary, task_id, demo_num, success_rate)
                 print('************************')
 
+    print(log_summary)
+    with open('./log_summary.json', 'w') as json_file:
+        json.dump(log_summary, json_file)
+
 
 if __name__ == "__main__":
     if multiprocessing.get_start_method(allow_none=True) != "spawn":
