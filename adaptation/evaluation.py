@@ -120,6 +120,7 @@ def main():
             for exp_path in exp_paths:
                 print(exp_path)
                 task_id, demo_num, success_rate = evaluate_one_repo_adaptor(pre_trained_model_path, exp_path)
+                print(task_id, demo_num, success_rate)
                 log_summary = update_log_summary(log_summary, task_id, demo_num, success_rate)
                 print('************************')
 
