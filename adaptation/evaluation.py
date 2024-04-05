@@ -95,16 +95,22 @@ def main():
         success_rate = success_rate
         return task_id, demo_num, success_rate
 
-    def update_log_summary(log_dict, task_id, demo_num, success_rate):
+    def update_log_summary(log_dict, task_id, demo_num, success_rate, exp_path):
         if not f'task {task_id}' in log_dict.keys():
             log_dict[f'task {task_id}'] = {}
-            log_dict[f'task {task_id}'][f'demo {demo_num}'] = success_rate
+            log_dict[f'task {task_id}'][f'demo {demo_num}'] = {}
+            log_dict[f'task {task_id}'][f'demo {demo_num}']['success_rate'] = success_rate
+            log_dict[f'task {task_id}'][f'demo {demo_num}']['path'] = exp_path
+
         else:
             if not f'demo {demo_num}' in log_dict[f'task {task_id}']:
-                log_dict[f'task {task_id}'][f'demo {demo_num}'] = success_rate
+                log_dict[f'task {task_id}'][f'demo {demo_num}'] = {}
+                log_dict[f'task {task_id}'][f'demo {demo_num}']['success_rate'] = success_rate
+                log_dict[f'task {task_id}'][f'demo {demo_num}']['path'] = exp_path
             else:
-                if success_rate > log_dict[f'task {task_id}'][f'demo {demo_num}']:
-                    log_dict[f'task {task_id}'][f'demo {demo_num}'] = success_rate
+                if success_rate > log_dict[f'task {task_id}'][f'demo {demo_num}']['success_rate']:
+                    log_dict[f'task {task_id}'][f'demo {demo_num}']['success_rate'] = success_rate
+                    log_dict[f'task {task_id}'][f'demo {demo_num}']['path'] = exp_path
 
         return log_dict
 
@@ -121,7 +127,7 @@ def main():
                 print(exp_path)
                 task_id, demo_num, success_rate = evaluate_one_repo_adaptor(pre_trained_model_path, exp_path)
                 print(task_id, demo_num, success_rate)
-                log_summary = update_log_summary(log_summary, task_id, demo_num, success_rate)
+                log_summary = update_log_summary(log_summary, task_id, demo_num, success_rate, exp_path)
                 print('************************')
 
     print(log_summary)
