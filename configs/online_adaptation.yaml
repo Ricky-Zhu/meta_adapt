@@ -1,0 +1,19 @@
+# @package _global_
+
+lora_rank: 8
+adapt_demo_num_each_task: 10
+post_adaptation_start_id: 5
+bias_training_type: "lora_only"
+random_meta: true
+meta_update_epochs: 50
+meta_support_num: 5
+meta_query_num: 15
+num_workers: 4
+meta_update_inner_lr: 0.4
+learn_meta_update_inner_lrs: true
+meta_display_interval: 5
+update_procedure_batch_size: 32
+n_epochs: 100
+save_interval: 20
+
+

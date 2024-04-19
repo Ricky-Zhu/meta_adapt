@@ -1,28 +1,91 @@
-import os
-os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
-from libero.libero.envs import OffScreenRenderEnv
-from libero.libero.benchmark import get_benchmark, get_benchmark_dict
-from libero.libero import get_libero_path, set_libero_default_path
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import loralib as lora
+import numpy as np
+import random
 
-benchmark_instance = get_benchmark_dict()['libero_object']()
+
+# Define your network class
+class YourNetwork(nn.Module):
+    def __init__(self):
+        super(YourNetwork, self).__init__()
+        self.l1 = nn.Linear(20, 20)
+        self.layer1 = nn.Linear(20, 1)  # Example layer
+
+    def forward(self, x):
+        x_l1 = self.l1(x)
+        x = F.relu(x_l1)
+        x = self.layer1(x)
+        return x
 
 
-bddl_files_default_path = get_libero_path("bddl_files")
+class YourNetwork1(nn.Module):
+    def __init__(self):
+        super(YourNetwork1, self).__init__()
+        self.l1 = nn.Linear(20, 20)
+        self.layer1 = nn.Linear(20, 1)  # Example layer
+        self.lora = lora.Linear(20, 20, r=5)
 
-task_id = 9
-task = benchmark_instance.get_task(task_id)
+    def forward(self, x):
+        x_l1 = self.l1(x)
+        x_lora = self.lora(x)
+        x = F.relu(x_l1 + x_lora)
+        x = self.layer1(x)
+        return x
 
-env_args = {
-    "bddl_file_name": os.path.join(bddl_files_default_path, task.problem_folder, task.bddl_file),
-    "camera_heights": 128,
-    "camera_widths": 128
-}
 
-env = OffScreenRenderEnv(**env_args)
-init_states = benchmark_instance.get_task_init_states(task_id)
+def set_random_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    np.random.seed(seed)
+    random.seed(seed)
 
-env.seed(0)
-env.reset()
-env.set_init_state(init_states[0])
-for _ in range(5):
-        obs, _, _, _ = env.step([0.] * 7)
+
+set_random_seed(1)
+# Create an instance of your network
+net = YourNetwork1()
+
+net.load_state_dict(torch.load("/home/ruiqi/projects/meta_adapt/adaptation/test/network.pth"), strict=False)
+
+optimizer = torch.optim.Adam(net.parameters(), lr=1e-1)
+lora.mark_only_lora_as_trainable(net, bias='lora_only')
+print(net.state_dict()['lora.lora_A'][0, :10])
+# load meta params and transform to trainable
+meta_params = lora.lora_state_dict(net, bias='lora_only')
+meta_params['lora.lora_A'] = 2 * meta_params['lora.lora_A']
+# for k in meta_params.keys():
+#     meta_params[k] = nn.Parameter(meta_params[k])
+print(meta_params['lora.lora_A'][0, :10])
+
+# # replace with the meta params
+lora_bias_names = []
+# load the loraA and loraB matrix
+for name, param in net.named_parameters():
+    if 'lora_' in name:
+        param.data = meta_params[name]
+        param.requires_grad = True
+        bias_name = name.split('lora_')[0] + 'bias'
+        lora_bias_names.append(bias_name)
+
+# load the lora bias
+for name, param in net.named_parameters():
+    if name in lora_bias_names:
+        param.data = meta_params[name]
+        param.requires_grad = True
+
+print(net.state_dict()['lora.lora_A'][0, :10])
+for i in range(10):
+    x = torch.arange(20).reshape(1, 20).to(torch.float)
+    y = torch.tensor([0.1]).reshape(1, 1).to(torch.float)
+    pred = net(x)
+    loss = F.mse_loss(pred, y)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+print(meta_params['lora.lora_A'][0, :10])
+print(net.state_dict()['lora.lora_A'][0, :10])
+# torch.save(lora.lora_state_dict(net, bias='lora_only'), './test/meta_params.pth')

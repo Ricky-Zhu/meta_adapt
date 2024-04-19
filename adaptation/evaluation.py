@@ -131,8 +131,9 @@ def main():
                 print('************************')
 
     print(log_summary)
-    with open('./log_summary.json', 'w') as json_file:
-        json.dump(log_summary, json_file)
+    with open('./log_summary.json', 'w') as f:
+        f.write(json.dump(log_summary))
+        f.close()
 
 
 if __name__ == "__main__":
