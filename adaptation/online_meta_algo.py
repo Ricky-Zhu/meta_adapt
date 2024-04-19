@@ -16,6 +16,11 @@ import loralib as lora
 from policy import *
 from torch import autograd
 from utils import clone_module, update_module
+import json
+from libero.lifelong.utils import NpEncoder
+from omegaconf import OmegaConf
+import yaml
+from easydict import EasyDict
 
 
 class OnlineMeta(Sequential):
@@ -45,6 +50,7 @@ class OnlineMeta(Sequential):
         self.meta_optimizer = eval(self.cfg.train.optimizer.name)(
             list(self.policy.parameters()) + list(self.meta_update_inner_lr.values()), **self.cfg.train.optimizer.kwargs
         )
+
 
     def online_adapt(self, benchmark, pre_train_dataset, post_adaptation_dataset):
         for task in range(len(post_adaptation_dataset)):

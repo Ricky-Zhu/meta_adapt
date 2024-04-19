@@ -48,6 +48,7 @@ def main(online_adaptation_cfg):
     descriptions = []
     shape_meta = None
 
+    print(f'Use {cfg.adaptation.adapt_demo_num_each_task} demos')
     for i in range(n_manip_tasks):
         # currently we assume tasks from same benchmark have the same shape_meta
         try:
@@ -88,7 +89,12 @@ def main(online_adaptation_cfg):
     cfg.pop('experiment_dir')
     algo = safe_device(eval('OnlineMeta')(10, cfg, sd), 'cuda')
     # algo.policy.previous_mask = previous_mask
-
+    # save the configs
+    config_path = os.path.join(cfg.experiment_dir, 'config.json')
+    yaml_config = OmegaConf.to_yaml(online_adaptation_cfg)
+    adapt_cfg = EasyDict(yaml.safe_load(yaml_config))
+    with open(config_path, 'w') as f:
+        json.dump(adapt_cfg, f, cls=NpEncoder, indent=4)
     # online adapting
     algo.online_adapt(benchmark, pre_train_dataset, post_adaptation_dataset)
 
