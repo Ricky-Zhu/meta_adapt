@@ -1,4 +1,7 @@
 import os
+import sys
+from os.path import dirname, abspath
+sys.path.append(dirname(dirname(abspath(__file__))))
 from warnings import filterwarnings
 
 filterwarnings(action='ignore', category=DeprecationWarning)
@@ -15,7 +18,7 @@ from libero.lifelong.utils import *
 import loralib as lora
 from policy import *
 from torch import autograd
-from utils import clone_module, update_module
+from utils.online_adapt_utils import clone_module, update_module
 import json
 from libero.lifelong.utils import NpEncoder
 from omegaconf import OmegaConf
