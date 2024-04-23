@@ -124,10 +124,10 @@ def main():
             exp_paths = [folder for folder in glob(os.path.join(run_path, '*.pth'))]
             finish_flag = os.path.join(run_path, 'task_9_ep_100.pth') in exp_paths
             # if not finish_flag:
-            #     print(run_path)
-            #     with open(os.path.join(run_path, 'config.json'), 'r') as f:
-            #         config = json.load(f)
-            #     print(f"adpat num:{config['adapt_demo_num_each_task']}.meta_update_epochs:{config['meta_update_epochs']}.support:{config['meta_support_num']}.query:{config['meta_query_num']}")
+            #        print(run_path)
+            with open(os.path.join(run_path, 'config.json'), 'r') as f:
+                config = json.load(f)
+            f.close()
             #     print('########################')
             if finish_flag:
 
@@ -143,6 +143,8 @@ def main():
                             tasks_best_path[ind] = exp_path
 
                 print(run_path)
+                print(
+                    f"adpat num:{config['adapt_demo_num_each_task']}.meta_update_epochs:{config['meta_update_epochs']}.support:{config['meta_support_num']}.query:{config['meta_query_num']}")
                 print(tasks_best)
                 print(tasks_best_path)
                 print('----------------------------------------------------')
