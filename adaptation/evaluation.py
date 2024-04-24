@@ -1,8 +1,6 @@
 from warnings import filterwarnings
 
 filterwarnings(action='ignore', category=DeprecationWarning)
-import argparse
-import sys
 import os
 import sys
 from os.path import dirname, abspath
@@ -11,30 +9,13 @@ import multiprocessing
 sys.path.append(dirname(dirname(abspath(__file__))))
 # TODO: find a better way for this?
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-import hydra
-import json
-import numpy as np
-import pprint
-from pre_training.pre_training_algo import PreTrainMultitask
-import time
 import robomimic.utils.file_utils as FileUtils
 from libero.libero import get_libero_path
 from libero.libero.benchmark import get_benchmark
-from libero.lifelong.algos import *
 
-from libero.lifelong.utils import (
-    control_seed,
-    safe_device,
-    torch_load_model,
-    NpEncoder,
-    compute_flops,
-)
-from utils.task_creation import create_tasks
-from libero.lifelong.main import get_task_embs
 from utils.evaluation import *
 import robomimic.utils.obs_utils as ObsUtils
-import robomimic.utils.tensor_utils as TensorUtils
-from policy import *
+from lora_parts.policy import *
 from glob import glob
 
 

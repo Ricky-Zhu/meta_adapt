@@ -47,6 +47,7 @@ import robomimic.utils.tensor_utils as TensorUtils
 
 import time
 from glob import glob
+
 benchmark_map = {
     "libero_10": "LIBERO_10",
     "libero_spatial": "LIBERO_SPATIAL",
@@ -110,7 +111,6 @@ def parse_args():
 
 
 def main():
-
     # e.g., experiments/LIBERO_SPATIAL/Multitask/BCRNNPolicy_seed100/
 
     model_path_folder = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003'
@@ -157,8 +157,9 @@ def main():
         print('#####################')
         print(f'{model_path.split("/")[-1]}')
         algo.eval()
-        for i in range(cfg.task_creation.pre_training_num):
-            task = benchmark.get_task(i)
+        for task_id in range(10):
+            task = benchmark.get_task(task_id)
+            task_emb = benchmark.get_task_emb(task_id)
             env_args = {
                 "bddl_file_name": os.path.join(
                     cfg.bddl_folder, task.problem_folder, task.bddl_file
@@ -166,51 +167,80 @@ def main():
                 "camera_heights": cfg.data.img_h,
                 "camera_widths": cfg.data.img_w,
             }
-            env_num = 10  # TODO change to 20
 
-            env = SubprocVectorEnv(
-                [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
-            )
-            env.reset()
-            env.seed(cfg.seed)
-            algo.reset()
+            cfg.eval.n_eval = 50  # iterate over all init conditions
+            cfg.eval.use_mp = True
+            env_num = min(cfg.eval.num_procs, cfg.eval.n_eval) if cfg.eval.use_mp else 1
+            eval_loop_num = (cfg.eval.n_eval + env_num - 1) // env_num
 
+            # Try to handle the frame buffer issue
+            env_creation = False
+
+            count = 0
+            while not env_creation and count < 5:
+                try:
+                    if env_num == 1:
+                        env = DummyVectorEnv(
+                            [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
+                        )
+                    else:
+                        env = SubprocVectorEnv(
+                            [lambda: OffScreenRenderEnv(**env_args) for _ in range(env_num)]
+                        )
+                    env_creation = True
+                except:
+                    time.sleep(5)
+                    count += 1
+            if count >= 5:
+                raise Exception("Failed to create environment")
+
+            ### Evaluation loop
+            # get fixed init states to control the experiment randomness
             init_states_path = os.path.join(
                 cfg.init_states_folder, task.problem_folder, task.init_states_file
             )
             init_states = torch.load(init_states_path)
-            indices = np.arange(env_num) % init_states.shape[0]
-            init_states_ = init_states[indices]
-
-            dones = [False] * env_num
-            steps = 0
-            obs = env.set_init_state(init_states_)
-            task_emb = benchmark.get_task_emb(i)
-
             num_success = 0
-            for _ in range(5):  # simulate the physics without any actions
-                env.step(np.zeros((env_num, 7)))
 
-            with torch.no_grad():
+            for i in range(eval_loop_num):
+                env.reset()
+                indices = np.arange(i * env_num, (i + 1) * env_num) % init_states.shape[0]
+                init_states_ = init_states[indices]
+
+                dones = [False] * env_num
+                steps = 0
+                algo.reset()
+                obs = env.set_init_state(init_states_)
+
+                # dummy actions [env_num, 7] all zeros for initial physics simulation
+                dummy = np.zeros((env_num, 7))
+                for _ in range(5):
+                    obs, _, _, _ = env.step(dummy)
+
                 while steps < cfg.eval.max_steps:
                     steps += 1
 
                     data = raw_obs_to_tensor_obs(obs, task_emb, cfg)
                     actions = algo.policy.get_action(data)
+
                     obs, reward, done, info = env.step(actions)
 
                     # check whether succeed
                     for k in range(env_num):
                         dones[k] = dones[k] or done[k]
+
                     if all(dones):
                         break
 
+                # a new form of success record
                 for k in range(env_num):
-                    num_success += int(dones[k])
+                    if i * env_num + k < cfg.eval.n_eval:
+                        num_success += int(dones[k])
 
-            success_rate = num_success / env_num
+            success_rate = num_success / cfg.eval.n_eval
             env.close()
-            print(f'task {i}: {success_rate}')
+
+            print(f'task {task_id}: {success_rate}')
 
         print('*************************')
 

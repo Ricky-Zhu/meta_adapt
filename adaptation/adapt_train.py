@@ -3,51 +3,25 @@ import sys
 
 sys.path.append("..")
 filterwarnings(action='ignore', category=DeprecationWarning)
-import argparse
-import sys
 import os
-from pre_training.pre_training_algo import PreTrainMultitask
 import sys
 from os.path import dirname, abspath
-import multiprocessing
 
 sys.path.append(dirname(dirname(abspath(__file__))))
 # TODO: find a better way for this?
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import hydra
-import json
-import numpy as np
-import pprint
-import time
-import torch
-import robomimic.utils.file_utils as FileUtils
-from libero.lifelong.utils import create_experiment_dir
 from libero.libero import get_libero_path
 from libero.libero.benchmark import get_benchmark
-from libero.libero.envs import OffScreenRenderEnv, SubprocVectorEnv, DummyVectorEnv
-from libero.libero.utils.time_utils import Timer
-from libero.libero.utils.video_utils import VideoWriter
-from libero.lifelong.algos import *
-from libero.lifelong.datasets import get_dataset, SequenceVLDataset, GroupedTaskDataset
-from libero.lifelong.metric import (
-    evaluate_loss,
-    evaluate_success,
-    raw_obs_to_tensor_obs,
-)
+from libero.lifelong.datasets import get_dataset, SequenceVLDataset
 from libero.lifelong.utils import (
     control_seed,
     safe_device,
     torch_load_model,
-    NpEncoder,
-    compute_flops,
 )
-from utils.task_creation import create_tasks
 from libero.lifelong.main import get_task_embs
 
-import robomimic.utils.obs_utils as ObsUtils
-import robomimic.utils.tensor_utils as TensorUtils
-from policy import *
-import time
+from lora_parts.policy import *
 
 benchmark_map = {
     "libero_10": "LIBERO_10",
