@@ -122,7 +122,7 @@ def main():
         for directory in dirs:
             run_path = os.path.join(root, directory)
             exp_paths = [folder for folder in glob(os.path.join(run_path, '*.pth'))]
-            finish_flag = os.path.join(run_path, 'task_9_ep_100.pth') in exp_paths
+            finish_flag = os.path.join(run_path, 'task_9_ep_100.pth') in exp_paths and 'run_020' in run_path
             # if not finish_flag:
             #        print(run_path)
             with open(os.path.join(run_path, 'config.json'), 'r') as f:
