@@ -135,12 +135,17 @@ def main():
                 tasks_best_path = ['', '', '', '', '']
                 for exp_path in exp_paths:
                     if 'ep' in exp_path:
+
                         task_id = int(exp_path.split('/')[-1].split('_')[1])
+                        ep = exp_path.split('/')[-1].split('_')[3].split('.')[0]
+
                         success_rate = evaluate_one_repo_adaptor(task_id, pre_trained_model_path, exp_path)[0]
                         ind = task_id - 5
                         if success_rate > tasks_best[ind]:
                             tasks_best[ind] = success_rate
                             tasks_best_path[ind] = exp_path
+                        print(f'task:{task_id}, ep:{ep}, success_rate:{success_rate}')
+
 
                 print(run_path)
                 print(
