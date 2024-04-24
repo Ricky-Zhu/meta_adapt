@@ -134,7 +134,7 @@ def main():
                 tasks_best = np.zeros(5)
                 tasks_best_path = ['', '', '', '', '']
                 for exp_path in exp_paths:
-                    if 'task' in exp_path:
+                    if 'ep' in exp_path:
                         task_id = int(exp_path.split('/')[-1].split('_')[1])
                         success_rate = evaluate_one_repo_adaptor(task_id, pre_trained_model_path, exp_path)[0]
                         ind = task_id - 5

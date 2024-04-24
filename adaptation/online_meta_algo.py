@@ -1,6 +1,7 @@
 import os
 import sys
 from os.path import dirname, abspath
+
 sys.path.append(dirname(dirname(abspath(__file__))))
 from warnings import filterwarnings
 
@@ -24,6 +25,7 @@ from libero.lifelong.utils import NpEncoder
 from omegaconf import OmegaConf
 import yaml
 from easydict import EasyDict
+from copy import deepcopy
 
 
 class OnlineMeta(Sequential):
@@ -53,7 +55,6 @@ class OnlineMeta(Sequential):
         self.meta_optimizer = eval(self.cfg.train.optimizer.name)(
             list(self.policy.parameters()) + list(self.meta_update_inner_lr.values()), **self.cfg.train.optimizer.kwargs
         )
-
 
     def online_adapt(self, benchmark, pre_train_dataset, post_adaptation_dataset):
         for task in range(len(post_adaptation_dataset)):
@@ -110,6 +111,7 @@ class OnlineMeta(Sequential):
         self.save_meta_lora_params()
 
     def update_procedure(self, task_specific_dataset):
+
         train_dataloader = DataLoader(
             task_specific_dataset, batch_size=self.cfg.adaptation.update_procedure_batch_size, shuffle=True,
             num_workers=self.cfg.adaptation.num_workers)
@@ -134,9 +136,9 @@ class OnlineMeta(Sequential):
                 training_loss /= len(train_dataloader)
             t1 = time.time()
 
-            print(
-                f"[info] Task: {self.current_task}| Epoch: {epoch:3d} | train loss: {training_loss:5.2f} | time: {(t1 - t0) / 60:4.2f}"
-            )
+            # print(
+            #     f"[info] Task: {self.current_task}| Epoch: {epoch:3d} | train loss: {training_loss:5.2f} | time: {(t1 - t0) / 60:4.2f}"
+            # )
             if epoch % self.cfg.adaptation.save_interval == 0:
                 print(
                     f"[info] Task: {self.current_task}| Epoch: {epoch:3d} | train loss: {training_loss:5.2f} | time: {(t1 - t0) / 60:4.2f}"
@@ -149,7 +151,7 @@ class OnlineMeta(Sequential):
         torch.save(lora.lora_state_dict(self.policy, bias=self.cfg.adaptation.bias_training_type), path)
 
     def save_meta_lora_params(self):
-        self.meta_lora_params = lora.lora_state_dict(self.policy, bias=self.cfg.adaptation.bias_training_type)
+        self.meta_lora_params = deepcopy(lora.lora_state_dict(self.policy, bias=self.cfg.adaptation.bias_training_type))
         path = os.path.join(self.cfg.experiment_dir, f'meta_params_task_{self.current_task}.pth')
         torch.save(self.meta_lora_params, path)
 
