@@ -87,13 +87,14 @@ def main(adapt_cfg):
         best_suc = -1.0
         best_ep = None
         for file in files:
-            adaptor_path = os.path.join(root, file)
-            task_id, demo_num, success_rate = evaluate_one_repo_adaptor(pre_trained_model_path, adaptor_path)
-            print(task_id, demo_num, success_rate, file)
-            if success_rate > best_suc:
-                best_suc = success_rate
-                best_ep = adaptor_path
-        print(f'best suc:{best_suc}, best_ep:{best_ep}')
+            if 'ep' in file and 'pth' in file:
+                adaptor_path = os.path.join(root, file)
+                task_id, demo_num, success_rate = evaluate_one_repo_adaptor(pre_trained_model_path, adaptor_path)
+                print(task_id, demo_num, success_rate, file)
+                if success_rate > best_suc:
+                    best_suc = success_rate
+                    best_ep = adaptor_path
+        print(f'task:{task_id}, best suc:{best_suc}, best_ep:{best_ep}')
 
 
 if __name__ == "__main__":
