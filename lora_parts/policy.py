@@ -1,5 +1,5 @@
 from libero.lifelong.models import *
-from models import *
+from .lora_models import LoraTransformerDecoder
 
 
 class LoraBCTPolicy(BCTransformerPolicy):

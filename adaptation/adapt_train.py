@@ -20,8 +20,9 @@ from libero.lifelong.utils import (
     torch_load_model,
 )
 from libero.lifelong.main import get_task_embs
-
+from pre_training.pre_training_algo import *
 from lora_parts.policy import *
+import loralib as lora
 
 benchmark_map = {
     "libero_10": "LIBERO_10",
@@ -106,9 +107,14 @@ def main(adaptation_cfg):
     ##################################
     # model with lora definition
     cfg.policy.policy_type = 'LoraBCTPolicy'
-    cfg.eval.n_eval = cfg.adaptation.n_eval
+    cfg.eval.n_eval = cfg.adaptation.n_eval  # the number of evaluations in the adaptation
+
     # remove the previous experiment dir so that the initialization of algo will create a new exp dir
     cfg.pop('experiment_dir')
+    cfg.experiment_dir = os.path.join(cfg.adaptation.exp_dir, f'task_{cfg.adaptation.adaptation_task_id}',
+                                      f'demo_{cfg.adaptation.adapt_demo_num_each_task}')  # load the customized experiment dir (e.g. ./experiment/lora_adaptation/task_7)
+    if not os.path.exists(cfg.experiment_dir):
+        os.makedirs(cfg.experiment_dir)
     algo = safe_device(eval('PreTrainMultitask')(10, cfg), 'cuda')
     algo.policy.previous_mask = previous_mask
     algo.policy.load_state_dict(sd, strict=False)
@@ -116,7 +122,7 @@ def main(adaptation_cfg):
     which_bias_train = 'lora_only' if not cfg.adaptation.train_all_bias else 'all'
     lora.mark_only_lora_as_trainable(algo.policy, bias=which_bias_train)
 
-    # prepare experiment dir and train
+    # prepare experiment dir and start training
     algo.adapt(post_adaptation_dataset, benchmark, adapt_task_id=cfg.adaptation.adaptation_task_id,
                which_bias_train=which_bias_train)
 

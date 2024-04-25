@@ -13,6 +13,7 @@ from libero.lifelong.metric import *
 from libero.lifelong.models import *
 from libero.lifelong.utils import *
 import loralib as lora
+import multiprocessing
 
 
 class PreTrainMultitask(Sequential):
@@ -197,7 +198,7 @@ class PreTrainMultitask(Sequential):
                 f"[info] Epoch: {epoch:3d} | train loss: {training_loss:5.2f} | time: {(t1 - t0) / 60:4.2f}"
             )
 
-            if epoch % self.cfg.adaptation.eval_every == 0:  # evaluate BC loss
+            if epoch % self.cfg.adaptation.eval_every == 0:
                 t0 = time.time()
                 model_checkpoint_name_ep = os.path.join(
                     self.experiment_dir, f"lora_model_ep{epoch}.pth"
@@ -211,16 +212,10 @@ class PreTrainMultitask(Sequential):
 
                 losses.append(training_loss)
 
-                # for multitask learning, we provide an option whether to evaluate
-                # the agent once every eval_every epochs on all tasks, note that
-                # this can be quite computationally expensive. Nevertheless, we
-                # save the checkpoints, so users can always evaluate afterwards.
                 if self.cfg.adaptation.eval:
                     self.policy.eval()
 
-                    success_rates = evaluate_pretrain_multitask_training_success(
-                        self.cfg, self, benchmark, adapt_task
-                    )
+                    success_rates = self.evaluate_during_adapt(self.cfg, self, benchmark, adapt_task)
                     success_rate = np.mean(success_rates)
 
                     successes.append(success_rate)
@@ -251,15 +246,6 @@ class PreTrainMultitask(Sequential):
             if self.scheduler is not None and epoch > 0:
                 self.scheduler.step()
 
-        # # eval the model in the envs
-        # final_success_rates = evaluate_pretrain_multitask_training_success(
-        #     self.cfg, self, benchmark, adapt_task
-        # )
-        # final_success_rate = np.mean(final_success_rates)
-        # print(self.cfg.experiment_dir)
-        # print('Final success rate:', final_success_rates)
-        # print('Final avg success rate:', final_success_rate)
-
         # load the best policy if there is any
         if self.cfg.lifelong.eval_in_train:
             self.policy.load_state_dict(torch_load_model(model_checkpoint_name)[0])
@@ -284,3 +270,10 @@ class PreTrainMultitask(Sequential):
             success_at_best_succ = successes[idx_at_best_succ]
             losses[idx_at_best_succ:] = loss_at_best_succ
             successes[idx_at_best_succ:] = success_at_best_succ
+
+    def evaluate_during_adapt(self, cfg, algo, benchmark, adapt_task_id):
+
+        suc_rates = evaluate_pretrain_multitask_training_success(
+            cfg, algo, benchmark, adapt_task_id
+        )
+        return suc_rates
