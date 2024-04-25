@@ -18,6 +18,7 @@ import robomimic.utils.obs_utils as ObsUtils
 from lora_parts.policy import *
 from glob import glob
 from pre_training.pre_training_algo import *
+from termcolor import colored
 
 
 @hydra.main(config_path="../configs", config_name="adaptation", version_base=None)
@@ -80,7 +81,8 @@ def main(adapt_cfg):
 
     pre_trained_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
     adaptor_model_paths = os.path.join(adapt_cfg.adaptation.exp_dir, f'task_{adapt_cfg.adaptation.adaptation_task_id}',
-                                       f'demo_{adapt_cfg.adaptation.adapt_demo_num_each_task}')
+                                       f'demo_{adapt_cfg.adaptation.adapt_demo_num_each_task}',
+                                       f'seed_{adapt_cfg.adaptation.seed}')
 
     for root, dirs, files in os.walk(adaptor_model_paths):
 
@@ -94,7 +96,12 @@ def main(adapt_cfg):
                 if success_rate > best_suc:
                     best_suc = success_rate
                     best_ep = adaptor_path
-        print(f'task:{task_id}, best suc:{best_suc}, best_ep:{best_ep}')
+        try:
+            print(colored(
+                f'task:{task_id}, demo_num:{demo_num}, seed:{adapt_cfg.adaptation.seed}, best suc:{best_suc}, best_ep:{best_ep}',
+                'red'))
+        except:
+            print(f'task:{task_id}, demo_num:{demo_num}, seed:{adapt_cfg.adaptation.seed}, best suc:{best_suc}, best_ep:{best_ep}')
 
 
 if __name__ == "__main__":
