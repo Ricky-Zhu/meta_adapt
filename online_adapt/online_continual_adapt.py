@@ -87,6 +87,7 @@ def main(online_adaptation_cfg):
     cfg.lifelong.algo = 'OnlineMeta'  # for creating the exp dir in base algo : sequential
     # remove the previous experiment dir so that the initialization of algo will create a new exp dir
     cfg.pop('experiment_dir')
+
     algo = safe_device(eval('OnlineMeta')(10, cfg, sd), 'cuda')
     # algo.policy.previous_mask = previous_mask
     # save the configs
