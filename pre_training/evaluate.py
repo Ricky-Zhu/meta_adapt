@@ -110,19 +110,20 @@ def parse_args():
     # return args
 
 
-def main():
+def main(seed=None):
     # e.g., experiments/LIBERO_SPATIAL/Multitask/BCRNNPolicy_seed100/
 
     model_path_folder = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003'
     files = glob(model_path_folder + '/*.pth')
-
+    files = [os.path.join(model_path_folder, 'multitask_model.pth')]
     for model_path in files:
 
         sd, cfg, previous_mask = torch_load_model(
             model_path, map_location=None
         )
 
-        control_seed(cfg.seed)
+        use_seed = cfg.seed if seed is None else seed
+        control_seed(use_seed)
         cfg.folder = get_libero_path("datasets")
         cfg.bddl_folder = get_libero_path("bddl_files")
         cfg.init_states_folder = get_libero_path("init_states")
@@ -251,4 +252,10 @@ def main():
 if __name__ == "__main__":
     if multiprocessing.get_start_method(allow_none=True) != "spawn":
         multiprocessing.set_start_method("spawn", force=True)
-    main()
+
+    import argparse
+
+    parse = argparse.ArgumentParser()
+    parse.add_argument('--seed', type=int, default=100)
+    args = parse.parse_args()
+    main(args.seed)

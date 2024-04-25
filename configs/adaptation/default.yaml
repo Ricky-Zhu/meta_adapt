@@ -8,3 +8,4 @@ eval: false
 n_eval: 50
 eval_in_train: true
 exp_dir: './experiments/lora_adaptation/'
+seed: 100

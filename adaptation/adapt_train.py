@@ -58,7 +58,7 @@ def main(adaptation_cfg):
     # load specific adaptation configs
     cfg.adaptation = adaptation_cfg.adaptation
 
-    control_seed(cfg.seed)
+    control_seed(cfg.adaptation.seed)
     cfg.folder = get_libero_path("datasets")
     cfg.bddl_folder = get_libero_path("bddl_files")
     cfg.init_states_folder = get_libero_path("init_states")
@@ -112,7 +112,8 @@ def main(adaptation_cfg):
     # remove the previous experiment dir so that the initialization of algo will create a new exp dir
     cfg.pop('experiment_dir')
     cfg.experiment_dir = os.path.join(cfg.adaptation.exp_dir, f'task_{cfg.adaptation.adaptation_task_id}',
-                                      f'demo_{cfg.adaptation.adapt_demo_num_each_task}')  # load the customized experiment dir (e.g. ./experiment/lora_adaptation/task_7)
+                                      f'demo_{cfg.adaptation.adapt_demo_num_each_task}',
+                                      f'seed_{cfg.adaptation.seed}')  # load the customized experiment dir (e.g. ./experiment/lora_adaptation/task_7)
     if not os.path.exists(cfg.experiment_dir):
         os.makedirs(cfg.experiment_dir)
     algo = safe_device(eval('PreTrainMultitask')(10, cfg), 'cuda')

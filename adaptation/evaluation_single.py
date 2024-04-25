@@ -35,7 +35,7 @@ def main(adapt_cfg):
 
         which_bias_train = 'lora_only' if not cfg.adaptation.train_all_bias else 'all'
 
-        control_seed(cfg.seed)
+        control_seed(adapt_cfg.adaptation.seed)
         cfg.folder = get_libero_path("datasets")
         cfg.bddl_folder = get_libero_path("bddl_files")
         cfg.init_states_folder = get_libero_path("init_states")
