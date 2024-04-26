@@ -96,12 +96,11 @@ def main(adapt_cfg):
                 if success_rate > best_suc:
                     best_suc = success_rate
                     best_ep = adaptor_path
-        try:
-            print(colored(
-                f'task:{task_id}, demo_num:{demo_num}, seed:{adapt_cfg.adaptation.seed}, best suc:{best_suc}, best_ep:{best_ep}',
-                'red'))
-        except:
-            print(f'task:{task_id}, demo_num:{demo_num}, seed:{adapt_cfg.adaptation.seed}, best suc:{best_suc}, best_ep:{best_ep}')
+        final_sentence = f'task:{task_id}, demo_num:{demo_num}, seed:{adapt_cfg.adaptation.seed}, best suc:{best_suc}, best_ep:{best_ep}'
+        print(colored(final_sentence, 'red'))
+        with open(os.path.join(adaptor_model_paths, 'performance.txt'), 'w') as f:
+            f.write(final_sentence)
+        f.close()
 
 
 if __name__ == "__main__":
