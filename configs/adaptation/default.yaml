@@ -4,9 +4,9 @@ adapt_demo_num_each_task: 10
 adaptation_task_id: 8
 n_epochs: 50
 eval_every: 10
-eval: true
+eval: false
 n_eval: 20
-eval_in_train: true
+eval_in_train: false
 exp_dir: './experiments/lora_adaptation/'
 seed: 100
 
