@@ -118,9 +118,6 @@ class PreTrainMultitask(Sequential):
                             flush=True,
                         )
 
-            if self.scheduler is not None and epoch > 0:
-                self.scheduler.step()
-
         # load the best policy if there is any
         if self.cfg.lifelong.eval_in_train:
             self.policy.load_state_dict(torch_load_model(model_checkpoint_name)[0])
@@ -243,33 +240,16 @@ class PreTrainMultitask(Sequential):
                             flush=True,
                         )
 
-            if self.scheduler is not None and epoch > 0:
-                self.scheduler.step()
+    def start_task(self, task):
+        """
+        What the algorithm does at the beginning of learning each lifelong task.
+        """
+        self.current_task = task
 
-        # load the best policy if there is any
-        if self.cfg.lifelong.eval_in_train:
-            self.policy.load_state_dict(torch_load_model(model_checkpoint_name)[0])
-        self.end_task(concat_dataset, -1, benchmark)
-
-        # return the metrics regarding forward transfer
-        losses = np.array(losses)
-        successes = np.array(successes)
-        auc_checkpoint_name = os.path.join(
-            self.experiment_dir, f"multitask_auc.log"
+        # initialize the optimizer and scheduler
+        self.optimizer = eval(self.cfg.adaptation.optim_name)(
+            self.policy.parameters(), **self.cfg.adaptation.optim_kwargs
         )
-        torch.save(
-            {
-                "success": successes,
-                "loss": losses,
-            },
-            auc_checkpoint_name,
-        )
-
-        if self.cfg.lifelong.eval_in_train:
-            loss_at_best_succ = losses[idx_at_best_succ]
-            success_at_best_succ = successes[idx_at_best_succ]
-            losses[idx_at_best_succ:] = loss_at_best_succ
-            successes[idx_at_best_succ:] = success_at_best_succ
 
     def evaluate_during_adapt(self, cfg, algo, benchmark, adapt_task_id):
 
