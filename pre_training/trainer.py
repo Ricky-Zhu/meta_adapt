@@ -42,7 +42,6 @@ from os.path import dirname, abspath
 sys.path.append(dirname(dirname(abspath(__file__))))
 
 
-
 @hydra.main(config_path="../configs", config_name="pre_training", version_base=None)
 def main(hydra_cfg):
     # preprocessing
