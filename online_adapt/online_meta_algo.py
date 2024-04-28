@@ -60,8 +60,7 @@ class OnlineMeta(Sequential):
         for task in range(len(post_adaptation_dataset)):
             self.start_task(task + self.cfg.adaptation.post_adaptation_start_id)
             existing_dataset = pre_train_dataset + post_adaptation_dataset[:task + 1]
-            # self.meta_update(existing_dataset=existing_dataset)
-            self.save_meta_lora_params()
+            self.meta_update(existing_dataset=existing_dataset)
             self.update_procedure(task_specific_dataset=post_adaptation_dataset[task])
             self.load_meta_lora_params()  # load the lora params which are before the fine tunning
 

@@ -6,8 +6,8 @@ post_adaptation_start_id: 5
 bias_training_type: "lora_only"
 random_meta: true
 meta_update_epochs: 50
-meta_support_num: 0
-meta_query_num: 0
+meta_support_num: 10
+meta_query_num: 15
 num_workers: 4
 meta_update_inner_lr: 0.4
 learn_meta_update_inner_lrs: true
