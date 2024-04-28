@@ -90,6 +90,7 @@ class OnlineMeta(Sequential):
                     ep_query_loss.append(loss)
 
 
+
             else:
                 # iterate over all task dataset
                 for i in range(len(iter_dl_list)):
@@ -196,12 +197,17 @@ class OnlineMeta(Sequential):
     def meta_val(self, adapted_policy_net, query_data):
         data = self.map_tensor_to_device(query_data)
         # self.meta_optimizer.zero_grad()
-        loss = self.loss_scale * adapted_policy_net.compute_loss(data)
+        try:
+            loss = self.loss_scale * adapted_policy_net.compute_loss(data)
+            return loss
+        except:
+            print(f"actions:{data['actions'].shape}, agent_view:{data['obs']['agentview_rgb'].shape}, sample:{data['obs']['agentview_rgb'][0,0,0,0,:10]}")
+            raise NotImplementedError
         # loss.backward()
         #
         # self.meta_optimizer.step()
 
-        return loss
+
 
     def _meta_inner_step(self, data):
         target_policy_net = clone_module(self.policy)
