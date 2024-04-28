@@ -93,6 +93,8 @@ class OnlineMeta(Sequential):
                         print(support_data['actions'].shape)
                         print('-------')
                         print(query_data['actions'].shape)
+                        print('-------')
+                        print(data['actions'].shape)
                         raise NotImplementedError
 
 
