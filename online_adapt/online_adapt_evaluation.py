@@ -117,9 +117,9 @@ def main(om_cfg):
 
     pre_trained_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
 
-    adaptor_model_paths = os.path.join(om_cfg.adaptation.exp_dir, f'demo_{om_cfg.adaptation.adapt_demo_num_each_task}',
-                                       f'support_{om_cfg.adaptation.meta_support_num}_query_{om_cfg.adaptation.meta_query_num}',
-                                       f'seed_{om_cfg.adaptation.seed}')
+    adaptor_model_paths = os.path.join(om_cfg.exp_dir, f'demo_{om_cfg.adapt_demo_num_each_task}',
+                                       f'support_{om_cfg.meta_support_num}_query_{om_cfg.meta_query_num}',
+                                       f'seed_{om_cfg.seed}')
     log_summary = {}
 
     for root, dirs, files in os.walk(adaptor_model_paths):
