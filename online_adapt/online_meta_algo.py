@@ -85,9 +85,15 @@ class OnlineMeta(Sequential):
                         data = next(iter_dl_list[task_id])
                     support_data, query_data = self.split_support_query(data)
                     adapted_policy_net = self._meta_inner_step(support_data)
-
-                    loss = self.meta_val(adapted_policy_net, query_data)
-                    ep_query_loss.append(loss)
+                    try:
+                        loss = self.meta_val(adapted_policy_net, query_data)
+                        ep_query_loss.append(loss)
+                    except:
+                        print('--------')
+                        print(support_data)
+                        print('-------')
+                        print(query_data)
+                        raise NotImplementedError
 
 
 
@@ -197,17 +203,13 @@ class OnlineMeta(Sequential):
     def meta_val(self, adapted_policy_net, query_data):
         data = self.map_tensor_to_device(query_data)
         # self.meta_optimizer.zero_grad()
-        try:
-            loss = self.loss_scale * adapted_policy_net.compute_loss(data)
-            return loss
-        except:
-            print(data)
-            raise NotImplementedError
+
+        loss = self.loss_scale * adapted_policy_net.compute_loss(data)
+        return loss
+
         # loss.backward()
         #
         # self.meta_optimizer.step()
-
-
 
     def _meta_inner_step(self, data):
         target_policy_net = clone_module(self.policy)
