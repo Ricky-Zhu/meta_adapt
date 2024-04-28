@@ -79,13 +79,16 @@ class OnlineMeta(Sequential):
                     try:
                         data = next(iter_dl_list[task_id])
                     except:
-                        iter_dl_list[i] = iter(DataLoader(existing_dataset[i], batch_size=batch_size, shuffle=True,
-                                                          num_workers=self.cfg.adaptation.num_workers))
-                        data = next(iter_dl_list[i])
+                        iter_dl_list[task_id] = iter(
+                            DataLoader(existing_dataset[task_id], batch_size=batch_size, shuffle=True,
+                                       num_workers=self.cfg.adaptation.num_workers))
+                        data = next(iter_dl_list[task_id])
                     support_data, query_data = self.split_support_query(data)
                     adapted_policy_net = self._meta_inner_step(support_data)
+
                     loss = self.meta_val(adapted_policy_net, query_data)
                     ep_query_loss.append(loss)
+
 
             else:
                 # iterate over all task dataset
