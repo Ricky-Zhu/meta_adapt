@@ -201,7 +201,7 @@ class OnlineMeta(Sequential):
             loss = self.loss_scale * adapted_policy_net.compute_loss(data)
             return loss
         except:
-            print(f"actions:{data['actions'].shape}, agent_view:{data['obs']['agentview_rgb'].shape}, sample:{data['obs']['agentview_rgb'][0,0,0,0,:10]}")
+            print(data)
             raise NotImplementedError
         # loss.backward()
         #
