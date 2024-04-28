@@ -119,8 +119,7 @@ def main(om_cfg):
     adaptor_model_paths = os.path.join(om_cfg.exp_dir, f'demo_{om_cfg.adapt_demo_num_each_task}',
                                        f'support_{om_cfg.meta_support_num}_query_{om_cfg.meta_query_num}',
                                        f'seed_{om_cfg.seed}')
-    # log_summary = {}
-    adaptor_model_paths = '/home/ruiqi/projects/meta_adapt/scripts/experiments/lora_online_adaptation/demo_10/support_5_query_15/seed_10000'
+
     files = os.listdir(adaptor_model_paths)
     finish_flag = f'task_9_ep_{om_cfg.n_epochs}.pth' in files
     if finish_flag:
