@@ -90,9 +90,9 @@ class OnlineMeta(Sequential):
                         ep_query_loss.append(loss)
                     except:
                         print('--------')
-                        print(support_data)
+                        print(support_data['actions'].shape)
                         print('-------')
-                        print(query_data)
+                        print(query_data['actions'].shape)
                         raise NotImplementedError
 
 
