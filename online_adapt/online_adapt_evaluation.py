@@ -43,7 +43,7 @@ import hydra
 
 @hydra.main(config_path="../configs", config_name="online_adaptation", version_base=None)
 def main(om_cfg):
-    def evaluate_one_repo_adaptor(task_id, pre_train_model_path, adaptor_model_path):
+    def evaluate_one_repo_adaptor(task_id, pre_train_model_path, adaptor_model_path, cfg_adapt):
         # load the pre-trained model and adaptor model
         sd, cfg, previous_mask = torch_load_model(
             pre_train_model_path, map_location=None
@@ -51,14 +51,11 @@ def main(om_cfg):
 
         lora_model_sd = torch.load(adaptor_model_path, map_location=None)
 
-        control_seed(cfg.seed)
+        control_seed(om_cfg.seed)
         cfg.folder = get_libero_path("datasets")
         cfg.bddl_folder = get_libero_path("bddl_files")
         cfg.init_states_folder = get_libero_path("init_states")
 
-        cfg_adapt_path = os.path.join(*adaptor_model_path.split('/')[:-1], 'config.json')
-        with open(cfg_adapt_path, 'r') as f:
-            cfg_adapt = json.load(f)
         cfg_adapt = EasyDict(cfg_adapt)
         cfg.adaptation = cfg_adapt
         algo = safe_device(eval('OnlineMeta')(10, cfg, sd), 'cuda')
@@ -92,6 +89,7 @@ def main(om_cfg):
 
         # cfg.eval.n_eval=20 if want to set a different eval num as that in the exp
         cfg.eval.n_eval = 50
+        cfg.eval.use_mp = True
         success_rate = evaluate_success_all_init_condtions(cfg, algo, benchmark, [task_id])
 
         return success_rate
@@ -120,54 +118,34 @@ def main(om_cfg):
     adaptor_model_paths = os.path.join(om_cfg.exp_dir, f'demo_{om_cfg.adapt_demo_num_each_task}',
                                        f'support_{om_cfg.meta_support_num}_query_{om_cfg.meta_query_num}',
                                        f'seed_{om_cfg.seed}')
-    log_summary = {}
 
-    for root, dirs, files in os.walk(adaptor_model_paths):
-        for directory in dirs:
-            run_path = os.path.join(root, directory)
-            exp_paths = [folder for folder in glob(os.path.join(run_path, '*.pth'))]
-            finish_flag = os.path.join(run_path, 'task_9_ep_100.pth') in exp_paths and 'run_020' in run_path
-            # if not finish_flag:
-            #        print(run_path)
-            with open(os.path.join(run_path, 'config.json'), 'r') as f:
-                config = json.load(f)
+    files = os.listdir(adaptor_model_paths)
+    finish_flag = f'task_9_ep_{om_cfg.n_epochs}.pth' in files
+    if finish_flag:
+        with open(os.path.join(adaptor_model_paths, 'config.json'), 'r') as f:
+            config = json.load(f)
             f.close()
-            #     print('########################')
-            if finish_flag:
+        tasks_best = np.zeros(5)
+        tasks_best_path = ['', '', '', '', '']
+        for exp_path in files:
+            if 'ep' in exp_path:
 
-                tasks_best = np.zeros(5)
-                tasks_best_path = ['', '', '', '', '']
-                for exp_path in exp_paths:
-                    if 'ep' in exp_path:
+                task_id = int(exp_path.split('_')[1])
+                ep = int(exp_path.split('_')[-1].split('.')[0])
 
-                        task_id = int(exp_path.split('/')[-1].split('_')[1])
-                        ep = exp_path.split('/')[-1].split('_')[3].split('.')[0]
+                abs_exp_path = os.path.join(adaptor_model_paths, exp_path)
+                success_rate = evaluate_one_repo_adaptor(task_id, pre_trained_model_path, abs_exp_path, config)[0]
+                ind = task_id - 5
+                if success_rate > tasks_best[ind]:
+                    tasks_best[ind] = success_rate
+                    tasks_best_path[ind] = exp_path
+                print(f'task:{task_id}, ep:{ep}, success_rate:{success_rate}')
 
-                        success_rate = evaluate_one_repo_adaptor(task_id, pre_trained_model_path, exp_path)[0]
-                        ind = task_id - 5
-                        if success_rate > tasks_best[ind]:
-                            tasks_best[ind] = success_rate
-                            tasks_best_path[ind] = exp_path
-                        print(f'task:{task_id}, ep:{ep}, success_rate:{success_rate}')
-
-                print(run_path)
-                print(
-                    f"adpat num:{config['adapt_demo_num_each_task']}.meta_update_epochs:{config['meta_update_epochs']}.support:{config['meta_support_num']}.query:{config['meta_query_num']}")
-                print(tasks_best)
-                print(tasks_best_path)
-                print('----------------------------------------------------')
-
-            # for exp_path in exp_paths:
-            #     print(exp_path)
-            #     # task_id, demo_num, success_rate = evaluate_one_repo_adaptor(pre_trained_model_path, exp_path)
-            #     # print(task_id, demo_num, success_rate)
-            #     # log_summary = update_log_summary(log_summary, task_id, demo_num, success_rate, exp_path)
-            #     print('************************')
-
-    # print(log_summary)
-    # with open('./log_summary.json', 'w') as f:
-    #     f.write(json.dump(log_summary))
-    #     f.close()
+        print(
+            f"adpat num:{config['adapt_demo_num_each_task']}.meta_update_epochs:{config['meta_update_epochs']}.support:{config['meta_support_num']}.query:{config['meta_query_num']}")
+        print(tasks_best)
+        print(tasks_best_path)
+        print('----------------------------------------------------')
 
 
 if __name__ == "__main__":
