@@ -30,7 +30,7 @@ def main(online_adaptation_cfg):
     # load specific online adaptation configs
     cfg.adaptation = online_adaptation_cfg
 
-    control_seed(cfg.seed)
+    control_seed(online_adaptation_cfg.seed)
     cfg.folder = get_libero_path("datasets")
     cfg.bddl_folder = get_libero_path("bddl_files")
     cfg.init_states_folder = get_libero_path("init_states")
@@ -87,6 +87,12 @@ def main(online_adaptation_cfg):
     cfg.lifelong.algo = 'OnlineMeta'  # for creating the exp dir in base algo : sequential
     # remove the previous experiment dir so that the initialization of algo will create a new exp dir
     cfg.pop('experiment_dir')
+    cfg.experiment_dir = os.path.join(cfg.adaptation.exp_dir, f'demo_{cfg.adaptation.adapt_demo_num_each_task}',
+                                      f'support_{cfg.adaptation.meta_support_num}_query_{cfg.adaptation.meta_query_num}',
+                                      f'seed_{cfg.adaptation.seed}')
+
+    if not os.path.exists(cfg.experiment_dir):
+        os.makedirs(cfg.experiment_dir)
 
     algo = safe_device(eval('OnlineMeta')(10, cfg, sd), 'cuda')
     # algo.policy.previous_mask = previous_mask

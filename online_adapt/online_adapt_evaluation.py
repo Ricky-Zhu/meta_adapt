@@ -34,13 +34,15 @@ from libero.lifelong.main import get_task_embs
 from utils.evaluation import *
 import robomimic.utils.obs_utils as ObsUtils
 import robomimic.utils.tensor_utils as TensorUtils
-from policy import *
+from lora_parts.policy import *
 from glob import glob
 from online_meta_algo import *
 from easydict import EasyDict
+import hydra
 
 
-def main():
+@hydra.main(config_path="../configs", config_name="online_adaptation", version_base=None)
+def main(om_cfg):
     def evaluate_one_repo_adaptor(task_id, pre_train_model_path, adaptor_model_path):
         # load the pre-trained model and adaptor model
         sd, cfg, previous_mask = torch_load_model(
@@ -114,8 +116,10 @@ def main():
         return log_dict
 
     pre_trained_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
-    adaptor_model_paths = '../scripts/experiments/LIBERO_OBJECT/OnlineMeta/LoraBCTPolicy_seed10000/'
 
+    adaptor_model_paths = os.path.join(om_cfg.adaptation.exp_dir, f'demo_{om_cfg.adaptation.adapt_demo_num_each_task}',
+                                       f'support_{om_cfg.adaptation.meta_support_num}_query_{om_cfg.adaptation.meta_query_num}',
+                                       f'seed_{om_cfg.adaptation.seed}')
     log_summary = {}
 
     for root, dirs, files in os.walk(adaptor_model_paths):
@@ -145,7 +149,6 @@ def main():
                             tasks_best[ind] = success_rate
                             tasks_best_path[ind] = exp_path
                         print(f'task:{task_id}, ep:{ep}, success_rate:{success_rate}')
-
 
                 print(run_path)
                 print(

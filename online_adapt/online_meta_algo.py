@@ -17,7 +17,7 @@ from libero.lifelong.metric import *
 from libero.lifelong.models import *
 from libero.lifelong.utils import *
 import loralib as lora
-from policy import *
+from lora_parts.policy import *
 from torch import autograd
 from utils.online_adapt_utils import clone_module, update_module
 import json
@@ -102,12 +102,14 @@ class OnlineMeta(Sequential):
                     ep_query_loss.append(loss)
 
             # TODO logging the loss
-            avg_loss = sum(ep_query_loss) / len(ep_query_loss)
+            self.meta_optimizer.zero_grad()
+            mean_loss = torch.mean(torch.stack(ep_query_loss))
+            mean_loss.backward()
+            self.meta_optimizer.step()
             if ep % self.cfg.adaptation.meta_display_interval == 0:
-                print(f'epoch: {ep}, meta query loss: {avg_loss}, current task: {self.current_task}')
+                print(f'epoch: {ep}, meta query loss: {mean_loss.item()}, current task: {self.current_task}')
 
         print('##################################')
-        # TODO save the lora parameters of the policy net as meta lora parameters
         self.save_meta_lora_params()
 
     def update_procedure(self, task_specific_dataset):
@@ -190,13 +192,13 @@ class OnlineMeta(Sequential):
 
     def meta_val(self, adapted_policy_net, query_data):
         data = self.map_tensor_to_device(query_data)
-        self.meta_optimizer.zero_grad()
+        # self.meta_optimizer.zero_grad()
         loss = self.loss_scale * adapted_policy_net.compute_loss(data)
-        loss.backward()
+        # loss.backward()
+        #
+        # self.meta_optimizer.step()
 
-        self.meta_optimizer.step()
-
-        return loss.item()
+        return loss
 
     def _meta_inner_step(self, data):
         target_policy_net = clone_module(self.policy)
