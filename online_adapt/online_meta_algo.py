@@ -81,7 +81,7 @@ class OnlineMeta(Sequential):
                     except:
                         iter_dl_list[task_id] = iter(
                             DataLoader(existing_dataset[task_id], batch_size=batch_size, shuffle=True,
-                                       num_workers=self.cfg.adaptation.num_workers))
+                                       num_workers=self.cfg.adaptation.num_workers, drop_last=True))
                         data = next(iter_dl_list[task_id])
                     support_data, query_data = self.split_support_query(data)
                     adapted_policy_net = self._meta_inner_step(support_data)
@@ -177,7 +177,7 @@ class OnlineMeta(Sequential):
 
         for i in range(len(datasets)):
             temp_dl = DataLoader(datasets[i], batch_size=batch_size, shuffle=True,
-                                 num_workers=self.cfg.adaptation.num_workers)
+                                 num_workers=self.cfg.adaptation.num_workers, drop_last=True)
             iters_list.append(iter(temp_dl))
         return iters_list
 
