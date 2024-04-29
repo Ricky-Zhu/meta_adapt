@@ -52,16 +52,16 @@ class OnlineMeta(Sequential):
             for k in self.diff_params_names
         }
 
-        self.meta_optimizer = eval(self.cfg.train.optimizer.name)(
-            list(self.policy.parameters()) + list(self.meta_update_inner_lr.values()), **self.cfg.train.optimizer.kwargs
+        self.meta_optimizer = eval(self.cfg.adaptation.optim_name)(
+            list(self.policy.parameters()) + list(self.meta_update_inner_lr.values()),
+            **self.cfg.adaptation.meta_optim_kwargs
         )
 
     def online_adapt(self, benchmark, pre_train_dataset, post_adaptation_dataset):
         for task in range(len(post_adaptation_dataset)):
             self.start_task(task + self.cfg.adaptation.post_adaptation_start_id)
-            self.save_meta_lora_params()
-            # existing_dataset = pre_train_dataset + post_adaptation_dataset[:task + 1]
-            # self.meta_update(existing_dataset=existing_dataset)
+            existing_dataset = pre_train_dataset + post_adaptation_dataset[:task + 1]
+            self.meta_update(existing_dataset=existing_dataset)
             self.update_procedure(task_specific_dataset=post_adaptation_dataset[task])
             self.load_meta_lora_params()  # load the lora params which are before the fine tunning
 
@@ -107,7 +107,7 @@ class OnlineMeta(Sequential):
                         data = next(iter_dl_list[i])
                     except:
                         iter_dl_list[i] = iter(DataLoader(existing_dataset[i], batch_size=batch_size, shuffle=True,
-                                                          num_workers=self.cfg.adaptation.num_workers,drop_last=True))
+                                                          num_workers=self.cfg.adaptation.num_workers, drop_last=True))
                         data = next(iter_dl_list[i])
                     support_data, query_data = self.split_support_query(data)
                     adapted_policy_net = self._meta_inner_step(support_data)

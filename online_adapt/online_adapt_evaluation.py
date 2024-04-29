@@ -118,6 +118,8 @@ def main(om_cfg):
 
     adaptor_model_paths = os.path.join(om_cfg.exp_dir, f'demo_{om_cfg.adapt_demo_num_each_task}',
                                        f'support_{om_cfg.meta_support_num}_query_{om_cfg.meta_query_num}',
+                                       f'meta_update_epochs_{om_cfg.meta_update_epochs}',
+                                       f'random_meta_{om_cfg.random_meta}',
                                        f'seed_{om_cfg.seed}')
 
     files = os.listdir(adaptor_model_paths)
@@ -129,7 +131,7 @@ def main(om_cfg):
         tasks_best = np.zeros(5)
         tasks_best_path = ['', '', '', '', '']
         for exp_path in files:
-            if 'ep' in exp_path:
+            if 'ep' in exp_path and '_0' not in exp_path:
 
                 task_id = int(exp_path.split('_')[1])
                 ep = int(exp_path.split('_')[-1].split('.')[0])
@@ -142,12 +144,18 @@ def main(om_cfg):
                     tasks_best_path[ind] = exp_path
                 print(f'task:{task_id}, ep:{ep}, success_rate:{success_rate}')
 
-        print(
-            f"adpat num:{config['adapt_demo_num_each_task']}.meta_update_epochs:{config['meta_update_epochs']}.support:{config['meta_support_num']}.query:{config['meta_query_num']}")
+        config_info = f"adpat num:{config['adapt_demo_num_each_task']}.meta_update_epochs:{config['meta_update_epochs']}.support:{config['meta_support_num']}.query:{config['meta_query_num']}.random_meta:{config['random_meta']}.meta_update_epochs:{config['meta_update_epochs']}\n"
+        print(config_info)
         print(tasks_best)
         print(tasks_best_path)
         print('----------------------------------------------------')
-
+        # save the log
+        log_save_path = os.path.join(adaptor_model_paths, 'performance.txt')
+        with open(log_save_path,'w') as f:
+            f.write(config_info)
+            f.write(str(tasks_best))
+            f.write('\n')
+            f.write(str(tasks_best_path))
 
 if __name__ == "__main__":
     if multiprocessing.get_start_method(allow_none=True) != "spawn":

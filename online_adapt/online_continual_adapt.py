@@ -89,6 +89,8 @@ def main(online_adaptation_cfg):
     cfg.pop('experiment_dir')
     cfg.experiment_dir = os.path.join(cfg.adaptation.exp_dir, f'demo_{cfg.adaptation.adapt_demo_num_each_task}',
                                       f'support_{cfg.adaptation.meta_support_num}_query_{cfg.adaptation.meta_query_num}',
+                                      f'meta_update_epochs_{cfg.adaptation.meta_update_epochs}',
+                                      f'random_meta_{cfg.adaptation.random_meta}',
                                       f'seed_{cfg.adaptation.seed}')
 
     if not os.path.exists(cfg.experiment_dir):
