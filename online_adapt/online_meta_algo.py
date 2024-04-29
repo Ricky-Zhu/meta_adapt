@@ -59,8 +59,9 @@ class OnlineMeta(Sequential):
     def online_adapt(self, benchmark, pre_train_dataset, post_adaptation_dataset):
         for task in range(len(post_adaptation_dataset)):
             self.start_task(task + self.cfg.adaptation.post_adaptation_start_id)
-            existing_dataset = pre_train_dataset + post_adaptation_dataset[:task + 1]
-            self.meta_update(existing_dataset=existing_dataset)
+            self.save_meta_lora_params()
+            # existing_dataset = pre_train_dataset + post_adaptation_dataset[:task + 1]
+            # self.meta_update(existing_dataset=existing_dataset)
             self.update_procedure(task_specific_dataset=post_adaptation_dataset[task])
             self.load_meta_lora_params()  # load the lora params which are before the fine tunning
 
@@ -106,7 +107,7 @@ class OnlineMeta(Sequential):
                         data = next(iter_dl_list[i])
                     except:
                         iter_dl_list[i] = iter(DataLoader(existing_dataset[i], batch_size=batch_size, shuffle=True,
-                                                          num_workers=self.cfg.adaptation.num_workers))
+                                                          num_workers=self.cfg.adaptation.num_workers,drop_last=True))
                         data = next(iter_dl_list[i])
                     support_data, query_data = self.split_support_query(data)
                     adapted_policy_net = self._meta_inner_step(support_data)
@@ -257,154 +258,6 @@ class OnlineMeta(Sequential):
         self.current_task = task
 
         # initialize the optimizer and scheduler
-        self.optimizer = eval(self.cfg.train.optimizer.name)(
-            self.policy.parameters(), **self.cfg.train.optimizer.kwargs
+        self.optimizer = eval(self.cfg.adaptation.optim_name)(
+            self.policy.parameters(), **self.cfg.adaptation.optim_kwargs
         )
-
-        self.scheduler = None
-        if self.cfg.train.scheduler is not None:
-            self.scheduler = eval(self.cfg.train.scheduler.name)(
-                self.optimizer,
-                T_max=self.cfg.adaptation.n_epochs,
-                **self.cfg.train.scheduler.kwargs,
-            )
-
-    # def adapt(self, adapt_datasets, benchmark, adapt_task_id, which_bias_train):
-    #     self.start_task(-1)
-    #     concat_dataset = ConcatDataset(adapt_datasets)
-    #
-    #     # learn on all tasks, only used in multitask learning
-    #     model_checkpoint_name = os.path.join(
-    #         self.experiment_dir, f"lora_model.pth"
-    #     )
-    #     adapt_task = [adapt_task_id]
-    #
-    #     train_dataloader = DataLoader(
-    #         concat_dataset,
-    #         batch_size=self.cfg.train.batch_size,
-    #         num_workers=self.cfg.train.num_workers,
-    #         sampler=RandomSampler(concat_dataset),
-    #         persistent_workers=True,
-    #     )
-    #
-    #     prev_success_rate = -1.0
-    #     best_state_dict = self.policy.state_dict()  # currently save the best model
-    #
-    #     # for evaluate how fast the agent learns on current task, this corresponds
-    #     # to the area under success rate curve on the new task.
-    #     cumulated_counter = 0.0
-    #     idx_at_best_succ = 0
-    #     successes = []
-    #     losses = []
-    #
-    #     # start training
-    #     for epoch in range(0, self.cfg.adaptation.n_epochs + 1):
-    #
-    #         t0 = time.time()
-    #         if epoch > 0 or (self.cfg.pretrain):  # update
-    #             self.policy.train()
-    #             training_loss = 0.0
-    #             for (idx, data) in enumerate(train_dataloader):
-    #                 loss = self.observe(data)
-    #                 training_loss += loss
-    #             training_loss /= len(train_dataloader)
-    #         else:  # just evaluate the zero-shot performance on 0-th epoch
-    #             training_loss = 0.0
-    #             #
-    #             for (idx, data) in enumerate(train_dataloader):
-    #                 loss = self.eval_observe(data)
-    #                 training_loss += loss
-    #             training_loss /= len(train_dataloader)
-    #         t1 = time.time()
-    #
-    #         print(
-    #             f"[info] Epoch: {epoch:3d} | train loss: {training_loss:5.2f} | time: {(t1 - t0) / 60:4.2f}"
-    #         )
-    #
-    #         if epoch % self.cfg.adaptation.eval_every == 0:  # evaluate BC loss
-    #             t0 = time.time()
-    #             model_checkpoint_name_ep = os.path.join(
-    #                 self.experiment_dir, f"lora_model_ep{epoch}.pth"
-    #             )
-    #
-    #             # only save the lora parameters
-    #             torch.save({
-    #                 "state_dict": lora.lora_state_dict(self.policy, bias=which_bias_train),
-    #                 "cfg": self.cfg,
-    #             }, model_checkpoint_name_ep)
-    #
-    #             losses.append(training_loss)
-    #
-    #             # for multitask learning, we provide an option whether to evaluate
-    #             # the agent once every eval_every epochs on all tasks, note that
-    #             # this can be quite computationally expensive. Nevertheless, we
-    #             # save the checkpoints, so users can always evaluate afterwards.
-    #             if self.cfg.adaptation.eval:
-    #                 self.policy.eval()
-    #
-    #                 success_rates = evaluate_pretrain_multitask_training_success(
-    #                     self.cfg, self, benchmark, adapt_task
-    #                 )
-    #                 success_rate = np.mean(success_rates)
-    #
-    #                 successes.append(success_rate)
-    #
-    #                 if prev_success_rate < success_rate and (not self.cfg.pretrain):
-    #                     # torch_save_model(self.policy, model_checkpoint_name, cfg=self.cfg)
-    #                     torch.save({
-    #                         "state_dict": lora.lora_state_dict(self.policy, bias=which_bias_train),
-    #                         "cfg": self.cfg,
-    #                     }, model_checkpoint_name)
-    #                     prev_success_rate = success_rate
-    #                     idx_at_best_succ = len(losses) - 1
-    #
-    #                 t1 = time.time()
-    #
-    #                 cumulated_counter += 1.0
-    #                 ci = confidence_interval(success_rate, self.cfg.eval.n_eval)
-    #                 tmp_successes = np.array(successes)
-    #                 tmp_successes[idx_at_best_succ:] = successes[idx_at_best_succ]
-    #
-    #                 if self.cfg.adaptation.eval_in_train:
-    #                     print(
-    #                         f"[info] Epoch: {epoch:3d} | succ: {success_rate:4.2f} ± {ci:4.2f} | best succ: {prev_success_rate} "
-    #                         + f"| succ. AoC {tmp_successes.sum() / cumulated_counter:4.2f} | time: {(t1 - t0) / 60:4.2f}",
-    #                         flush=True,
-    #                     )
-    #
-    #         if self.scheduler is not None and epoch > 0:
-    #             self.scheduler.step()
-    #
-    #     # # eval the model in the envs
-    #     # final_success_rates = evaluate_pretrain_multitask_training_success(
-    #     #     self.cfg, self, benchmark, adapt_task
-    #     # )
-    #     # final_success_rate = np.mean(final_success_rates)
-    #     # print(self.cfg.experiment_dir)
-    #     # print('Final success rate:', final_success_rates)
-    #     # print('Final avg success rate:', final_success_rate)
-    #
-    #     # load the best policy if there is any
-    #     if self.cfg.lifelong.eval_in_train:
-    #         self.policy.load_state_dict(torch_load_model(model_checkpoint_name)[0])
-    #     self.end_task(concat_dataset, -1, benchmark)
-    #
-    #     # return the metrics regarding forward transfer
-    #     losses = np.array(losses)
-    #     successes = np.array(successes)
-    #     auc_checkpoint_name = os.path.join(
-    #         self.experiment_dir, f"multitask_auc.log"
-    #     )
-    #     torch.save(
-    #         {
-    #             "success": successes,
-    #             "loss": losses,
-    #         },
-    #         auc_checkpoint_name,
-    #     )
-    #
-    #     if self.cfg.lifelong.eval_in_train:
-    #         loss_at_best_succ = losses[idx_at_best_succ]
-    #         success_at_best_succ = successes[idx_at_best_succ]
-    #         losses[idx_at_best_succ:] = loss_at_best_succ
-    #         successes[idx_at_best_succ:] = success_at_best_succ
