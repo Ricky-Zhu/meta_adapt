@@ -65,11 +65,12 @@ class PreTrainMultitask(Sequential):
                 training_loss /= len(train_dataloader)
             else:  # just evaluate the zero-shot performance on 0-th epoch
                 training_loss = 0.0
-
+                #
                 for (idx, data) in enumerate(train_dataloader):
                     loss = self.eval_observe(data)
                     training_loss += loss
                 training_loss /= len(train_dataloader)
+
             t1 = time.time()
 
             print(
@@ -118,9 +119,6 @@ class PreTrainMultitask(Sequential):
                             flush=True,
                         )
 
-        # load the best policy if there is any
-        if self.cfg.lifelong.eval_in_train:
-            self.policy.load_state_dict(torch_load_model(model_checkpoint_name)[0])
         self.end_task(concat_dataset, -1, benchmark)
 
         # return the metrics regarding forward transfer
@@ -244,12 +242,15 @@ class PreTrainMultitask(Sequential):
         """
         What the algorithm does at the beginning of learning each lifelong task.
         """
-        self.current_task = task
 
-        # initialize the optimizer and scheduler
-        self.optimizer = eval(self.cfg.adaptation.optim_name)(
-            self.policy.parameters(), **self.cfg.adaptation.optim_kwargs
-        )
+        try:
+            self.current_task = task
+            # initialize the optimizer and scheduler
+            self.optimizer = eval(self.cfg.adaptation.optim_name)(
+                self.policy.parameters(), **self.cfg.adaptation.optim_kwargs
+            )
+        except:
+            super().start_task(task)
 
     def evaluate_during_adapt(self, cfg, algo, benchmark, adapt_task_id):
 

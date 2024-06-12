@@ -110,12 +110,19 @@ def parse_args():
     # return args
 
 
-def main(seed=None):
-    # e.g., experiments/LIBERO_SPATIAL/Multitask/BCRNNPolicy_seed100/
-
-    model_path_folder = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003'
+def main(seed=None, use_newest=False, specific_folder=None):
+    if use_newest:
+        print("use the newest model folder .")
+        base_path = './experiments/LIBERO_OBJECT/PreTrainMultitask/BCViLTPolicy_seed10000/'
+        folders = sorted(glob(os.path.join(base_path, 'run_*')))
+        model_path_folder = folders[-1]
+    else:
+        assert specific_folder is not None, "specify the model folder!"
+        model_path_folder = specific_folder
+        # model_path_folder = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003'
+    print(model_path_folder)
     files = glob(model_path_folder + '/*.pth')
-    files = [os.path.join(model_path_folder, 'multitask_model.pth')]
+    # files = [os.path.join(model_path_folder, 'multitask_model.pth')]
     for model_path in files:
 
         sd, cfg, previous_mask = torch_load_model(
@@ -158,7 +165,7 @@ def main(seed=None):
         print('#####################')
         print(f'{model_path.split("/")[-1]}')
         algo.eval()
-        for task_id in range(10):
+        for task_id in range(benchmark.n_tasks):
             task = benchmark.get_task(task_id)
             task_emb = benchmark.get_task_emb(task_id)
             env_args = {
@@ -169,7 +176,7 @@ def main(seed=None):
                 "camera_widths": cfg.data.img_w,
             }
 
-            cfg.eval.n_eval = 50  # iterate over all init conditions
+            cfg.eval.n_eval = 20  # iterate over all init conditions
             cfg.eval.use_mp = True
             env_num = min(cfg.eval.num_procs, cfg.eval.n_eval) if cfg.eval.use_mp else 1
             eval_loop_num = (cfg.eval.n_eval + env_num - 1) // env_num
@@ -257,5 +264,6 @@ if __name__ == "__main__":
 
     parse = argparse.ArgumentParser()
     parse.add_argument('--seed', type=int, default=100)
+    parse.add_argument('--use_newest', action='store_false')
     args = parse.parse_args()
-    main(args.seed)
+    main(args.seed, args.use_newest)
