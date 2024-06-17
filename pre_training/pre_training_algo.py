@@ -53,23 +53,23 @@ class PreTrainMultitask(Sequential):
         losses = []
 
         # start training
-        for epoch in range(0, self.cfg.train.n_epochs + 1):
+        for epoch in range(1, self.cfg.train.n_epochs + 1):
 
             t0 = time.time()
-            if epoch > 0 or (self.cfg.pretrain):  # update
-                self.policy.train()
-                training_loss = 0.0
-                for (idx, data) in enumerate(train_dataloader):
-                    loss = self.observe(data)
-                    training_loss += loss
-                training_loss /= len(train_dataloader)
-            else:  # just evaluate the zero-shot performance on 0-th epoch
-                training_loss = 0.0
-                #
-                for (idx, data) in enumerate(train_dataloader):
-                    loss = self.eval_observe(data)
-                    training_loss += loss
-                training_loss /= len(train_dataloader)
+            # if epoch > 0 or (self.cfg.pretrain):  # update
+            self.policy.train()
+            training_loss = 0.0
+            for (idx, data) in enumerate(train_dataloader):
+                loss = self.observe(data)
+                training_loss += loss
+            training_loss /= len(train_dataloader)
+            # else:  # just evaluate the zero-shot performance on 0-th epoch
+            #     training_loss = 0.0
+            #     #
+            #     for (idx, data) in enumerate(train_dataloader):
+            #         loss = self.eval_observe(data)
+            #         training_loss += loss
+            #     training_loss /= len(train_dataloader)
 
             t1 = time.time()
 
