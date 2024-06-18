@@ -112,11 +112,19 @@ def parse_args():
 
 
 def main(args):
+    if args.task_suite == 'object':
+        suf = 'LIBERO_OBJECT'
+    elif args.task_suite == 'spatial':
+        suf = 'LIBERO_SPATIAL'
+    elif args.task_suite == 'goal':
+        suf = 'LIBERO_GOAL'
+    else:
+        raise NotImplementedError
     seed = args.seed
     use_newest = args.use_newest
     specific_folder = args.folder
     N_EVAL = 5 if args.save_obs else 20
-    base_path = './experiments/LIBERO_SPATIAL/PreTrainMultitask/BCViLTPolicy_seed10000/'
+    base_path = f'./experiments/{suf}/PreTrainMultitask/BCViLTPolicy_seed10000/'
     if use_newest:
         print("use the newest model folder .")
         folders = sorted(glob(os.path.join(base_path, 'run_*')))
@@ -277,5 +285,6 @@ if __name__ == "__main__":
     parse.add_argument('--use_newest', action='store_false')
     parse.add_argument('--save_obs', action='store_true')
     parse.add_argument('--folder', type=str, default=None)
+    parse.add_argument('--task_suite', type=str, default='object')
     args = parse.parse_args()
     main(args)
