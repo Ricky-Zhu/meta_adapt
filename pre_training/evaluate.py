@@ -1,4 +1,5 @@
 from warnings import filterwarnings
+import pickle as pkl
 
 filterwarnings(action='ignore', category=DeprecationWarning)
 import argparse
@@ -166,6 +167,7 @@ def main(seed=None, use_newest=False, specific_folder=None):
         print(f'{model_path.split("/")[-1]}')
         algo.eval()
         for task_id in range(benchmark.n_tasks):
+            task_obs_buffer = []
             task = benchmark.get_task(task_id)
             task_emb = benchmark.get_task_emb(task_id)
             env_args = {
@@ -176,7 +178,7 @@ def main(seed=None, use_newest=False, specific_folder=None):
                 "camera_widths": cfg.data.img_w,
             }
 
-            cfg.eval.n_eval = 20  # iterate over all init conditions
+            cfg.eval.n_eval = 5  # iterate over all init conditions
             cfg.eval.use_mp = True
             env_num = min(cfg.eval.num_procs, cfg.eval.n_eval) if cfg.eval.use_mp else 1
             eval_loop_num = (cfg.eval.n_eval + env_num - 1) // env_num
@@ -227,8 +229,8 @@ def main(seed=None, use_newest=False, specific_folder=None):
 
                 while steps < cfg.eval.max_steps:
                     steps += 1
-
                     data = raw_obs_to_tensor_obs(obs, task_emb, cfg)
+                    task_obs_buffer.append(data['obs'])
                     actions = algo.policy.get_action(data)
 
                     obs, reward, done, info = env.step(actions)
@@ -249,6 +251,10 @@ def main(seed=None, use_newest=False, specific_folder=None):
             env.close()
 
             print(f'task {task_id}: {success_rate}')
+
+            with open(os.path.join(model_path_folder, f'task_{task_id}.pkl'), 'wb') as f:
+                pkl.dump(task_obs_buffer, f)
+                f.close()
 
         print('*************************')
 
