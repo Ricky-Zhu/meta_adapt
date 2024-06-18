@@ -116,7 +116,7 @@ def main(args):
     use_newest = args.use_newest
     specific_folder = args.folder
     N_EVAL = 5 if args.save_obs else 20
-    base_path = './experiments/LIBERO_OBJECT/PreTrainMultitask/BCViLTPolicy_seed10000/'
+    base_path = './experiments/LIBERO_SPATIAL/PreTrainMultitask/BCViLTPolicy_seed10000/'
     if use_newest:
         print("use the newest model folder .")
         folders = sorted(glob(os.path.join(base_path, 'run_*')))
