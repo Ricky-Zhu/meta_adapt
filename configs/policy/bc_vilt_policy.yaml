@@ -4,8 +4,8 @@ extra_hidden_size: 128
 embed_size: 128
 
 spatial_transformer_input_size: null
-spatial_transformer_num_layers: 6
-spatial_transformer_num_heads: 6
+spatial_transformer_num_layers: 7
+spatial_transformer_num_heads: 8
 spatial_transformer_head_output_size: 120
 spatial_transformer_mlp_hidden_size: 256
 spatial_transformer_dropout: 0.1

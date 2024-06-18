@@ -14,7 +14,7 @@ from libero.lifelong.models import *
 from libero.lifelong.utils import *
 import loralib as lora
 import multiprocessing
-
+from torchvision import transforms
 
 class PreTrainMultitask(Sequential):
     """
