@@ -111,7 +111,11 @@ def parse_args():
     # return args
 
 
-def main(seed=None, use_newest=False, specific_folder=None):
+def main(args):
+    seed = args.seed
+    use_newest = args.use_newest
+    specific_folder = args.folder
+    N_EVAL = 5 if args.save_obs else 20
     base_path = './experiments/LIBERO_OBJECT/PreTrainMultitask/BCViLTPolicy_seed10000/'
     if use_newest:
         print("use the newest model folder .")
@@ -178,7 +182,7 @@ def main(seed=None, use_newest=False, specific_folder=None):
                 "camera_widths": cfg.data.img_w,
             }
 
-            cfg.eval.n_eval = 5  # iterate over all init conditions
+            cfg.eval.n_eval = N_EVAL  # iterate over all init conditions
             cfg.eval.use_mp = True
             env_num = min(cfg.eval.num_procs, cfg.eval.n_eval) if cfg.eval.use_mp else 1
             eval_loop_num = (cfg.eval.n_eval + env_num - 1) // env_num
@@ -271,6 +275,7 @@ if __name__ == "__main__":
     parse = argparse.ArgumentParser()
     parse.add_argument('--seed', type=int, default=100)
     parse.add_argument('--use_newest', action='store_false')
+    parse.add_argument('--save_obs', action='store_true')
     parse.add_argument('--folder', type=str, default=None)
     args = parse.parse_args()
-    main(args.seed, args.use_newest, args.folder)
+    main(args)
