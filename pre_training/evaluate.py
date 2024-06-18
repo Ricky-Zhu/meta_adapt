@@ -265,5 +265,6 @@ if __name__ == "__main__":
     parse = argparse.ArgumentParser()
     parse.add_argument('--seed', type=int, default=100)
     parse.add_argument('--use_newest', action='store_false')
+    parse.add_argument('--folder', type=str, default=None)
     args = parse.parse_args()
-    main(args.seed, args.use_newest)
+    main(args.seed, args.use_newest, args.folder)
