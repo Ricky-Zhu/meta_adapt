@@ -111,14 +111,14 @@ def parse_args():
 
 
 def main(seed=None, use_newest=False, specific_folder=None):
+    base_path = './experiments/LIBERO_OBJECT/PreTrainMultitask/BCViLTPolicy_seed10000/'
     if use_newest:
         print("use the newest model folder .")
-        base_path = './experiments/LIBERO_OBJECT/PreTrainMultitask/BCViLTPolicy_seed10000/'
         folders = sorted(glob(os.path.join(base_path, 'run_*')))
         model_path_folder = folders[-1]
     else:
         assert specific_folder is not None, "specify the model folder!"
-        model_path_folder = specific_folder
+        model_path_folder = os.path.join(base_path, specific_folder)
         # model_path_folder = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003'
     print(model_path_folder)
     files = glob(model_path_folder + '/*.pth')
