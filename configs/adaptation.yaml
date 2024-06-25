@@ -1,26 +1,20 @@
-# @package _global_
+lora_rank: 8
+train_all_bias: false
+adapt_demo_num_each_task: 5
+adaptation_task_id: 5
+n_epochs: 50
+eval_every: 10
+eval: false
+n_eval: 20
+eval_in_train: false
+exp_dir: './experiments/lora_adaptation/'
+pre_trained_model_path: '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCViLTPolicy_seed10000/run_012/multitask_model_ep10.pth'
+seed: 100
+policy_type: 'LoraBCViLTPolicy'
+batch_size: 16
+optim_name: torch.optim.AdamW
 
-defaults:
-  - _self_
-  - data: default
-  - policy: bc_transformer_policy
-  - train: default
-  - eval: default
-  - lifelong: pretrain_multitask
-  - test: null
-  - task_creation: default
-  - adaptation: default
-
-seed: 10000
-use_wandb: false
-wandb_project: "lifelong learning"
-folder: null # use default path
-bddl_folder: null # use default path
-init_states_folder: null # use default path
-load_previous_model: false
-device: "cuda"
-task_embedding_format: "bert"
-task_embedding_one_hot_offset: 1
-pretrain: false
-pretrain_model_path: ""
-benchmark_name: "LIBERO_OBJECT"
+optim_kwargs:
+    lr: 0.0003
+    betas: [0.9, 0.999]
+    weight_decay: 0.0001

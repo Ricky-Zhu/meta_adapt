@@ -1,6 +1,8 @@
 from warnings import filterwarnings
 import sys
 
+import numpy as np
+
 sys.path.append("..")
 filterwarnings(action='ignore', category=DeprecationWarning)
 import os
@@ -24,39 +26,17 @@ from pre_training.pre_training_algo import *
 from lora_parts.policy import *
 import loralib as lora
 
-benchmark_map = {
-    "libero_10": "LIBERO_10",
-    "libero_spatial": "LIBERO_SPATIAL",
-    "libero_object": "LIBERO_OBJECT",
-    "libero_goal": "LIBERO_GOAL",
-}
-
-algo_map = {
-    "base": "Sequential",
-    "er": "ER",
-    "ewc": "EWC",
-    "packnet": "PackNet",
-    "multitask": "Multitask",
-}
-
-policy_map = {
-    "bc_rnn_policy": "BCRNNPolicy",
-    "bc_transformer_policy": "BCTransformerPolicy",
-    "bc_vilt_policy": "BCViLTPolicy",
-}
-
 
 @hydra.main(config_path="../configs", config_name="adaptation", version_base=None)
 def main(adaptation_cfg):
     # define the pre-trained model path
-    model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
 
     sd, cfg, previous_mask = torch_load_model(
-        model_path, map_location=None
+        adaptation_cfg.pre_trained_model_path, map_location=None
     )
 
     # load specific adaptation configs
-    cfg.adaptation = adaptation_cfg.adaptation
+    cfg.adaptation = adaptation_cfg
 
     control_seed(cfg.adaptation.seed)
     cfg.folder = get_libero_path("datasets")
@@ -65,16 +45,13 @@ def main(adaptation_cfg):
 
     #################################
     benchmark = get_benchmark(cfg.task_creation.task_suite)(cfg.task_creation.task_order)
-    descriptions = [benchmark.get_task(i).language for i in range(10)]
+    n_manip_tasks = benchmark.n_tasks
+    descriptions = [benchmark.get_task(i).language for i in range(n_manip_tasks)]
     task_embs = get_task_embs(cfg, descriptions)
     benchmark.set_task_embs(task_embs)
 
-    n_manip_tasks = benchmark.n_tasks
-
     # prepare datasets from the benchmark
     manip_datasets = []
-    descriptions = []
-    shape_meta = None
 
     for i in range(n_manip_tasks):
         # currently we assume tasks from same benchmark have the same shape_meta
@@ -93,30 +70,31 @@ def main(adaptation_cfg):
                 f"[error] failed to load task {i} name {benchmark.get_task_names()[i]}"
             )
             print(f"[error] {e}")
-        # add language to the vision dataset, hence we call vl_dataset
-        task_description = benchmark.get_task(i).language
-        descriptions.append(task_description)
         manip_datasets.append(task_i_dataset)
-
-    task_embs = get_task_embs(cfg, descriptions)
-    benchmark.set_task_embs(task_embs)
 
     post_adaptation_dataset = [SequenceVLDataset(manip_datasets[cfg.adaptation.adaptation_task_id],
                                                  task_embs[cfg.adaptation.adaptation_task_id])]
 
     ##################################
     # model with lora definition
-    cfg.policy.policy_type = 'LoraBCTPolicy'
+    cfg.policy.policy_type = cfg.adaptation.policy_type
     cfg.eval.n_eval = cfg.adaptation.n_eval  # the number of evaluations in the adaptation
 
     # remove the previous experiment dir so that the initialization of algo will create a new exp dir
     cfg.pop('experiment_dir')
-    cfg.experiment_dir = os.path.join(cfg.adaptation.exp_dir, f'task_{cfg.adaptation.adaptation_task_id}',
+    cfg.experiment_dir = os.path.join(cfg.adaptation.exp_dir, cfg.policy.policy_type,
+                                      f'task_{cfg.adaptation.adaptation_task_id}',
                                       f'demo_{cfg.adaptation.adapt_demo_num_each_task}',
                                       f'seed_{cfg.adaptation.seed}')  # load the customized experiment dir (e.g. ./experiment/lora_adaptation/task_7)
     if not os.path.exists(cfg.experiment_dir):
         os.makedirs(cfg.experiment_dir)
+
+    cfg_save_path = os.path.join(cfg.experiment_dir, 'config.json')
+    with open(cfg_save_path, "w") as f:
+        json.dump(cfg, f, cls=NpEncoder, indent=4)
+
     algo = safe_device(eval('PreTrainMultitask')(10, cfg), 'cuda')
+
     algo.policy.previous_mask = previous_mask
     algo.policy.load_state_dict(sd, strict=False)
 

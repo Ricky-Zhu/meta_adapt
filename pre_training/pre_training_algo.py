@@ -16,6 +16,7 @@ import loralib as lora
 import multiprocessing
 from torchvision import transforms
 
+
 class PreTrainMultitask(Sequential):
     """
     The multitask learning baseline/upperbound.
@@ -153,14 +154,14 @@ class PreTrainMultitask(Sequential):
 
         train_dataloader = DataLoader(
             concat_dataset,
-            batch_size=self.cfg.train.batch_size,
+            batch_size=self.cfg.adaptation.batch_size,
             num_workers=self.cfg.train.num_workers,
             sampler=RandomSampler(concat_dataset),
             persistent_workers=True,
         )
 
         prev_success_rate = -1.0
-        best_state_dict = self.policy.state_dict()  # currently save the best model
+        # best_state_dict = self.policy.state_dict()  # currently save the best model
 
         # for evaluate how fast the agent learns on current task, this corresponds
         # to the area under success rate curve on the new task.
@@ -170,23 +171,17 @@ class PreTrainMultitask(Sequential):
         losses = []
 
         # start training
-        for epoch in range(0, self.cfg.adaptation.n_epochs + 1):
+        for epoch in range(1, self.cfg.adaptation.n_epochs + 1):
 
             t0 = time.time()
-            if epoch > 0 or (self.cfg.pretrain):  # update
-                self.policy.train()
-                training_loss = 0.0
-                for (idx, data) in enumerate(train_dataloader):
-                    loss = self.observe(data)
-                    training_loss += loss
-                training_loss /= len(train_dataloader)
-            else:  # just evaluate the zero-shot performance on 0-th epoch
-                training_loss = 0.0
-                #
-                # for (idx, data) in enumerate(train_dataloader):
-                #     loss = self.eval_observe(data)
-                #     training_loss += loss
-                # training_loss /= len(train_dataloader)
+
+            self.policy.train()
+            training_loss = 0.0
+            for (idx, data) in enumerate(train_dataloader):
+                loss = self.observe(data)
+                training_loss += loss
+            training_loss /= len(train_dataloader)
+
             t1 = time.time()
 
             print(

@@ -34,9 +34,9 @@ def main(adapt_cfg):
         cfg = model_dict['cfg']
         lora_model_sd = model_dict['state_dict']
 
-        which_bias_train = 'lora_only' if not cfg.adaptation.train_all_bias else 'all'
+        # which_bias_train = 'lora_only' if not cfg.train_all_bias else 'all'
 
-        control_seed(adapt_cfg.adaptation.seed)
+        control_seed(adapt_cfg.seed)
         cfg.folder = get_libero_path("datasets")
         cfg.bddl_folder = get_libero_path("bddl_files")
         cfg.init_states_folder = get_libero_path("init_states")
@@ -79,28 +79,28 @@ def main(adapt_cfg):
         success_rate = success_rate
         return task_id, demo_num, success_rate
 
-    pre_trained_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
-    adaptor_model_paths = os.path.join(adapt_cfg.adaptation.exp_dir, f'task_{adapt_cfg.adaptation.adaptation_task_id}',
-                                       f'demo_{adapt_cfg.adaptation.adapt_demo_num_each_task}',
-                                       f'seed_{adapt_cfg.adaptation.seed}')
+    # pre_trained_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
+    adaptor_model_paths = os.path.join(adapt_cfg.exp_dir, adapt_cfg.policy_type,
+                                       f'task_{adapt_cfg.adaptation_task_id}',
+                                       f'demo_{adapt_cfg.adapt_demo_num_each_task}',
+                                       f'seed_{adapt_cfg.seed}')
 
-    for root, dirs, files in os.walk(adaptor_model_paths):
+    pth_paths = glob(os.path.join(adaptor_model_paths, "*pth"))
+
+    for path in pth_paths:
 
         best_suc = -1.0
         best_ep = None
-        for file in files:
-            if 'ep' in file and 'pth' in file:
-                adaptor_path = os.path.join(root, file)
-                task_id, demo_num, success_rate = evaluate_one_repo_adaptor(pre_trained_model_path, adaptor_path)
-                print(task_id, demo_num, success_rate, file)
-                if success_rate > best_suc:
-                    best_suc = success_rate
-                    best_ep = adaptor_path
-        final_sentence = f'task:{task_id}, demo_num:{demo_num}, seed:{adapt_cfg.adaptation.seed}, best suc:{best_suc}, best_ep:{best_ep}'
-        print(colored(final_sentence, 'red'))
-        with open(os.path.join(adaptor_model_paths, 'performance.txt'), 'w') as f:
-            f.write(final_sentence)
-        f.close()
+        task_id, demo_num, success_rate = evaluate_one_repo_adaptor(adapt_cfg.pre_trained_model_path, path)
+        print(task_id, demo_num, success_rate, path)
+        if success_rate > best_suc:
+            best_suc = success_rate
+            best_ep = path
+    final_sentence = f'task:{task_id}, demo_num:{demo_num}, seed:{adapt_cfg.seed}, best suc:{best_suc}, best_ep:{best_ep}'
+    print(colored(final_sentence, 'red'))
+    with open(os.path.join(adaptor_model_paths, 'performance.txt'), 'w') as f:
+        f.write(final_sentence)
+    f.close()
 
 
 if __name__ == "__main__":
