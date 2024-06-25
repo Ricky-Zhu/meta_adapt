@@ -86,11 +86,10 @@ def main(adapt_cfg):
                                        f'seed_{adapt_cfg.seed}')
 
     pth_paths = glob(os.path.join(adaptor_model_paths, "*pth"))
-
+    best_suc = -1.0
+    best_ep = None
     for path in pth_paths:
 
-        best_suc = -1.0
-        best_ep = None
         task_id, demo_num, success_rate = evaluate_one_repo_adaptor(adapt_cfg.pre_trained_model_path, path)
         print(task_id, demo_num, success_rate, path)
         if success_rate > best_suc:

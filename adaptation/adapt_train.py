@@ -25,10 +25,15 @@ from libero.lifelong.main import get_task_embs
 from pre_training.pre_training_algo import *
 from lora_parts.policy import *
 import loralib as lora
+from omegaconf import OmegaConf
+from easydict import EasyDict
+import yaml
 
 
 @hydra.main(config_path="../configs", config_name="adaptation", version_base=None)
 def main(adaptation_cfg):
+    yaml_config = OmegaConf.to_yaml(adaptation_cfg)
+    adaptation_cfg = EasyDict(yaml.safe_load(yaml_config))
     # define the pre-trained model path
 
     sd, cfg, previous_mask = torch_load_model(
@@ -91,8 +96,8 @@ def main(adaptation_cfg):
 
     cfg_save_path = os.path.join(cfg.experiment_dir, 'config.json')
     with open(cfg_save_path, "w") as f:
-        json.dump(cfg, f, cls=NpEncoder, indent=4)
-
+        json.dump(adaptation_cfg, f, cls=NpEncoder, indent=4)
+    print('config saved!')
     algo = safe_device(eval('PreTrainMultitask')(10, cfg), 'cuda')
 
     algo.policy.previous_mask = previous_mask
