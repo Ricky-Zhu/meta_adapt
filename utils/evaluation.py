@@ -175,6 +175,7 @@ def evaluate_one_task_success_all_init_condition(
         }
 
         env_num = min(cfg.eval.num_procs, cfg.eval.n_eval) if cfg.eval.use_mp else 1
+        print('evaluating on {} envs'.format(env_num))
         eval_loop_num = (cfg.eval.n_eval + env_num - 1) // env_num
 
         # Try to handle the frame buffer issue

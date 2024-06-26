@@ -21,7 +21,7 @@ from online_meta_algo import *
 @hydra.main(config_path="../configs", config_name="online_adaptation", version_base=None)
 def main(online_adaptation_cfg):
     # define the pre-trained model path
-    model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
+    model_path = online_adaptation_cfg.pre_trained_model_path
 
     sd, cfg, previous_mask = torch_load_model(
         model_path, map_location=None
@@ -37,16 +37,13 @@ def main(online_adaptation_cfg):
 
     #################################
     benchmark = get_benchmark(cfg.task_creation.task_suite)(cfg.task_creation.task_order)
-    descriptions = [benchmark.get_task(i).language for i in range(10)]
+    n_manip_tasks = benchmark.n_tasks
+    descriptions = [benchmark.get_task(i).language for i in range(n_manip_tasks)]
     task_embs = get_task_embs(cfg, descriptions)
     benchmark.set_task_embs(task_embs)
 
-    n_manip_tasks = benchmark.n_tasks
-
     # prepare datasets from the benchmark
     manip_datasets = []
-    descriptions = []
-    shape_meta = None
 
     print(f'Use {cfg.adaptation.adapt_demo_num_each_task} demos')
     for i in range(n_manip_tasks):
@@ -66,13 +63,7 @@ def main(online_adaptation_cfg):
                 f"[error] failed to load task {i} name {benchmark.get_task_names()[i]}"
             )
             print(f"[error] {e}")
-        # add language to the vision dataset, hence we call vl_dataset
-        task_description = benchmark.get_task(i).language
-        descriptions.append(task_description)
         manip_datasets.append(task_i_dataset)
-
-    task_embs = get_task_embs(cfg, descriptions)
-    benchmark.set_task_embs(task_embs)
 
     pre_train_dataset = [SequenceVLDataset(ds, emb) for (ds, emb) in
                          zip(manip_datasets[:cfg.adaptation.post_adaptation_start_id],
@@ -83,7 +74,7 @@ def main(online_adaptation_cfg):
                                    task_embs[cfg.adaptation.post_adaptation_start_id:])]
     ##################################
     # model with lora definition
-    cfg.policy.policy_type = 'LoraBCTPolicy'
+    cfg.policy.policy_type = online_adaptation_cfg.policy_type
     cfg.lifelong.algo = 'OnlineMeta'  # for creating the exp dir in base algo : sequential
     # remove the previous experiment dir so that the initialization of algo will create a new exp dir
     cfg.pop('experiment_dir')

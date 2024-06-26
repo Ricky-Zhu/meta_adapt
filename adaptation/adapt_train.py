@@ -87,7 +87,7 @@ def main(adaptation_cfg):
 
     # remove the previous experiment dir so that the initialization of algo will create a new exp dir
     cfg.pop('experiment_dir')
-    cfg.experiment_dir = os.path.join(cfg.adaptation.exp_dir, cfg.policy.policy_type,
+    cfg.experiment_dir = os.path.join(cfg.adaptation.exp_dir, cfg.benchmark_name, cfg.policy.policy_type,
                                       f'task_{cfg.adaptation.adaptation_task_id}',
                                       f'demo_{cfg.adaptation.adapt_demo_num_each_task}',
                                       f'seed_{cfg.adaptation.seed}')  # load the customized experiment dir (e.g. ./experiment/lora_adaptation/task_7)
