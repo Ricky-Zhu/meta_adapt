@@ -11,7 +11,7 @@ n_epochs: 50
 save_interval: 10
 lora_rank: 8
 meta_update_epochs: 50
-random_meta: true
+random_meta: false
 meta_update_inner_lr: 0.4
 meta_support_num: 5
 meta_query_num: 15

@@ -80,7 +80,8 @@ def main(adapt_cfg):
         return task_id, demo_num, success_rate
 
     # pre_trained_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
-    adaptor_model_paths = os.path.join(adapt_cfg.exp_dir, adapt_cfg.policy_type,
+    benchmark_name = adapt_cfg.pre_trained_model_path.split('/')[-5]
+    adaptor_model_paths = os.path.join(adapt_cfg.exp_dir, benchmark_name, adapt_cfg.policy_type,
                                        f'task_{adapt_cfg.adaptation_task_id}',
                                        f'demo_{adapt_cfg.adapt_demo_num_each_task}',
                                        f'seed_{adapt_cfg.seed}')

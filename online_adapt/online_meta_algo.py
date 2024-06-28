@@ -57,7 +57,7 @@ class OnlineMeta(Sequential):
             **self.cfg.adaptation.meta_optim_kwargs
         )
 
-    def online_adapt(self, benchmark, pre_train_dataset, post_adaptation_dataset):
+    def online_adapt(self, pre_train_dataset, post_adaptation_dataset):
         for task in range(len(post_adaptation_dataset)):
             self.start_task(task + self.cfg.adaptation.post_adaptation_start_id)
             existing_dataset = pre_train_dataset + post_adaptation_dataset[:task + 1]

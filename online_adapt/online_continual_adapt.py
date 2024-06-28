@@ -78,7 +78,8 @@ def main(online_adaptation_cfg):
     cfg.lifelong.algo = 'OnlineMeta'  # for creating the exp dir in base algo : sequential
     # remove the previous experiment dir so that the initialization of algo will create a new exp dir
     cfg.pop('experiment_dir')
-    cfg.experiment_dir = os.path.join(cfg.adaptation.exp_dir, f'demo_{cfg.adaptation.adapt_demo_num_each_task}',
+    cfg.experiment_dir = os.path.join(cfg.adaptation.exp_dir, cfg.benchmark_name,
+                                      f'demo_{cfg.adaptation.adapt_demo_num_each_task}',
                                       f'support_{cfg.adaptation.meta_support_num}_query_{cfg.adaptation.meta_query_num}',
                                       f'meta_update_epochs_{cfg.adaptation.meta_update_epochs}',
                                       f'random_meta_{cfg.adaptation.random_meta}',
@@ -96,7 +97,7 @@ def main(online_adaptation_cfg):
     with open(config_path, 'w') as f:
         json.dump(adapt_cfg, f, cls=NpEncoder, indent=4)
     # online adapting
-    algo.online_adapt(benchmark, pre_train_dataset, post_adaptation_dataset)
+    algo.online_adapt(pre_train_dataset, post_adaptation_dataset)
 
 
 if __name__ == "__main__":
