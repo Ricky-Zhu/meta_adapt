@@ -300,7 +300,7 @@ class OnlineMeta(Sequential):
             for p, n, g in zip(params, names, gradients):
                 if g is not None:
                     # p.update = - 0.4 * g
-                    p.update = - self.meta_update_inner_lr[n] * g
+                    p.update = - 0.4 * g
         target_policy_net = update_module(target_policy_net)
 
         return target_policy_net
