@@ -30,7 +30,7 @@ from torch.utils.data import Dataset
 
 
 class MetaDataset(Dataset):
-    def __init__(self, dataset, support_num=4, query_num=1, search_region=10):
+    def __init__(self, dataset, support_num=5, query_num=1, search_region=10):
         self.meta_dataset = dataset
         self.support_num = support_num
         self.query_num = query_num
@@ -300,7 +300,7 @@ class OnlineMeta(Sequential):
             for p, n, g in zip(params, names, gradients):
                 if g is not None:
                     # p.update = - 0.4 * g
-                    p.update = - 0.4 * g
+                    p.update = - self.meta_update_inner_lr[n] * g
         target_policy_net = update_module(target_policy_net)
 
         return target_policy_net
