@@ -117,8 +117,9 @@ def main(om_cfg):
     pre_trained_model_path = om_cfg.pre_trained_model_path
     benchmark_name = om_cfg.pre_trained_model_path.split('/')[-5]
     adaptor_model_paths = os.path.join(om_cfg.exp_dir, benchmark_name,
-                                      f'demo_{om_cfg.adapt_demo_num_each_task}',
-                                      f'seed_{om_cfg.seed}')
+                                       f'demo_{om_cfg.adapt_demo_num_each_task}',
+                                       f'meta_epoch_{om_cfg.meta_update_epochs}',
+                                       f'seed_{om_cfg.seed}')
 
     files = os.listdir(adaptor_model_paths)
     finish_flag = f'task_9_ep_{om_cfg.n_epochs}.pth' in files
@@ -149,11 +150,12 @@ def main(om_cfg):
         print('----------------------------------------------------')
         # save the log
         log_save_path = os.path.join(adaptor_model_paths, 'performance.txt')
-        with open(log_save_path,'w') as f:
+        with open(log_save_path, 'w') as f:
             f.write(config_info)
             f.write(str(tasks_best))
             f.write('\n')
             f.write(str(tasks_best_path))
+
 
 if __name__ == "__main__":
     if multiprocessing.get_start_method(allow_none=True) != "spawn":

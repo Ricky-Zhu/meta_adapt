@@ -10,7 +10,7 @@ update_procedure_batch_size: 32
 n_epochs: 50
 save_interval: 10
 lora_rank: 8
-meta_update_epochs: 150
+meta_update_epochs: 10000
 random_meta: false
 meta_update_inner_lr: 0.4
 meta_support_num: 5
