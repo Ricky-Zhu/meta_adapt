@@ -1,7 +1,9 @@
 import numpy as np
 import os
 
-path = "../scripts/experiments/lora_adaptation/LoraBCViLTPolicy"
+
+suite = 'LIBERO_SPATIAL'
+path = f"../scripts/experiments/lora_adaptation/{suite}/LoraBCViLTPolicy"
 
 summary = {}
 

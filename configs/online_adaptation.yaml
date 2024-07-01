@@ -1,6 +1,6 @@
 # @package _global_
 
-adapt_demo_num_each_task: 10
+adapt_demo_num_each_task: 5
 post_adaptation_start_id: 5
 bias_training_type: "lora_only"
 num_workers: 4
@@ -10,7 +10,7 @@ update_procedure_batch_size: 32
 n_epochs: 50
 save_interval: 10
 lora_rank: 8
-meta_update_epochs: 50
+meta_update_epochs: 150
 random_meta: false
 meta_update_inner_lr: 0.4
 meta_support_num: 5

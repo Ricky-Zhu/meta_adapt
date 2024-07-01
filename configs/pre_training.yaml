@@ -22,4 +22,4 @@ task_embedding_format: "bert"
 task_embedding_one_hot_offset: 1
 pretrain: false
 pretrain_model_path: ""
-benchmark_name: "LIBERO_SPATIAL"
+benchmark_name: "LIBERO_OBJECT"

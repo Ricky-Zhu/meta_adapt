@@ -1,6 +1,8 @@
 from warnings import filterwarnings
 import sys
 
+import numpy as np
+
 sys.path.append("..")
 filterwarnings(action='ignore', category=DeprecationWarning)
 import os
@@ -16,6 +18,8 @@ from libero.libero.benchmark import get_benchmark
 from libero.lifelong.datasets import get_dataset, SequenceVLDataset
 
 from online_meta_algo import *
+from torch.utils.data import Dataset
+import random
 
 
 @hydra.main(config_path="../configs", config_name="online_adaptation", version_base=None)
@@ -63,6 +67,7 @@ def main(online_adaptation_cfg):
                 f"[error] failed to load task {i} name {benchmark.get_task_names()[i]}"
             )
             print(f"[error] {e}")
+
         manip_datasets.append(task_i_dataset)
 
     pre_train_dataset = [SequenceVLDataset(ds, emb) for (ds, emb) in
@@ -80,9 +85,6 @@ def main(online_adaptation_cfg):
     cfg.pop('experiment_dir')
     cfg.experiment_dir = os.path.join(cfg.adaptation.exp_dir, cfg.benchmark_name,
                                       f'demo_{cfg.adaptation.adapt_demo_num_each_task}',
-                                      f'support_{cfg.adaptation.meta_support_num}_query_{cfg.adaptation.meta_query_num}',
-                                      f'meta_update_epochs_{cfg.adaptation.meta_update_epochs}',
-                                      f'random_meta_{cfg.adaptation.random_meta}',
                                       f'seed_{cfg.adaptation.seed}')
 
     if not os.path.exists(cfg.experiment_dir):

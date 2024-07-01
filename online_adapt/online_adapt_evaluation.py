@@ -114,13 +114,11 @@ def main(om_cfg):
 
         return log_dict
 
-    pre_trained_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
-
-    adaptor_model_paths = os.path.join(om_cfg.exp_dir, f'demo_{om_cfg.adapt_demo_num_each_task}',
-                                       f'support_{om_cfg.meta_support_num}_query_{om_cfg.meta_query_num}',
-                                       f'meta_update_epochs_{om_cfg.meta_update_epochs}',
-                                       f'random_meta_{om_cfg.random_meta}',
-                                       f'seed_{om_cfg.seed}')
+    pre_trained_model_path = om_cfg.pre_trained_model_path
+    benchmark_name = om_cfg.pre_trained_model_path.split('/')[-5]
+    adaptor_model_paths = os.path.join(om_cfg.exp_dir, benchmark_name,
+                                      f'demo_{om_cfg.adapt_demo_num_each_task}',
+                                      f'seed_{om_cfg.seed}')
 
     files = os.listdir(adaptor_model_paths)
     finish_flag = f'task_9_ep_{om_cfg.n_epochs}.pth' in files
