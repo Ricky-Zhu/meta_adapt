@@ -246,6 +246,11 @@ class OnlineMeta(Sequential):
         return support_data, query_data
 
     def meta_val(self, adapted_policy_net, query_data):
+        query_data['actions'] = query_data['actions'][0]
+        query_data['task_emb'] = query_data['task_emb'][0]
+        keys = list(query_data['obs'].keys())
+        for k in keys:
+            query_data['obs'][k] = query_data['obs'][k][0]
         data = self.map_tensor_to_device(query_data)
         # self.meta_optimizer.zero_grad()
 
