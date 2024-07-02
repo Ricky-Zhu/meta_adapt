@@ -2,6 +2,47 @@ from libero.lifelong.models.bc_transformer_policy import *
 import torch
 from libero.lifelong.models.modules.transformer_modules import *
 import loralib as lora
+from loralib.layers import LoRALayer
+
+
+class SimpleLoraLinear(LoRALayer, nn.Module):
+    # LoRA implemented in a dense layer
+    def __init__(
+            self,
+            in_features: int,
+            out_features: int,
+            r: int = 0,
+            lora_alpha: int = 1,
+            lora_dropout: float = 0.,
+            fan_in_fan_out: bool = False,
+            # Set this to True if the layer to replace stores weight like (fan_in, fan_out)
+            merge_weights: bool = True,
+            **kwargs
+    ):
+        LoRALayer.__init__(self, r=r, lora_alpha=lora_alpha, lora_dropout=lora_dropout,
+                           merge_weights=merge_weights)
+        nn.Module.__init__(self)
+
+        self.fan_in_fan_out = fan_in_fan_out
+        # Actual trainable parameters
+
+        self.lora_A = nn.Parameter(torch.rand(r, in_features))
+        self.lora_B = nn.Parameter(torch.rand(out_features, r))
+        self.lora_bias = nn.Parameter(torch.rand(out_features))
+        self.scaling = self.lora_alpha / self.r
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        if hasattr(self, 'lora_A'):
+            # initialize A the same way as the default for nn.Linear and B to zero
+            nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
+            nn.init.zeros_(self.lora_B)
+
+    def forward(self, x: torch.Tensor):
+        result = (self.lora_dropout(x) @ self.lora_A.transpose(0, 1) @ self.lora_B.transpose(0, 1)) * self.scaling
+        result += self.lora_bias
+        return result
 
 
 class LoraAttention(nn.Module):
@@ -17,8 +58,8 @@ class LoraAttention(nn.Module):
         self.output_layer = nn.Sequential(
             nn.Linear(num_heads * head_output_size, dim), nn.Dropout(dropout)
         )
-        self.lora_q = lora.Linear(dim, num_heads * head_output_size, r=lora_rank)
-        self.lora_v = lora.Linear(dim, num_heads * head_output_size, r=lora_rank)
+        self.lora_q = SimpleLoraLinear(dim, num_heads * head_output_size, r=lora_rank)
+        self.lora_v = SimpleLoraLinear(dim, num_heads * head_output_size, r=lora_rank)
 
     def forward(self, x, mask=None):
         B, N, C = x.shape
@@ -58,8 +99,8 @@ class LoraAttention(nn.Module):
 class LoraTransformerFeedForwardNN(TransformerFeedForwardNN):
     def __init__(self, dim, hidden_dim, dropout, lora_rank):
         super(LoraTransformerFeedForwardNN, self).__init__(dim, hidden_dim, dropout)
-        self.lora_1 = lora.Linear(dim, hidden_dim, r=lora_rank)
-        self.lora_2 = lora.Linear(hidden_dim, dim, r=lora_rank)
+        self.lora_1 = SimpleLoraLinear(dim, hidden_dim, r=lora_rank)
+        self.lora_2 = SimpleLoraLinear(hidden_dim, dim, r=lora_rank)
 
     def forward(self, x):
         x_lora1 = self.lora_1(x)
@@ -156,7 +197,26 @@ class LoraTransformerDecoder(nn.Module):
 
 
 if __name__ == "__main__":
-    model = LoraAttention(dim=128)
-    X = torch.randn(8, 10, 128)
-    y = model(X)
-    print('sd')
+    class Net(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l1 = nn.Linear(10, 10)
+            self.l = SimpleLoraLinear(in_features=10, out_features=20, r=5)
+
+        def forward(self, x):
+            x = self.l1(x)
+            return self.l(x)
+
+
+    model = Net()
+    print(model.l.lora_bias)
+    lora.mark_only_lora_as_trainable(model, bias='lora_only')
+    a = torch.rand(8, 10)
+    out = model(a)
+    label = torch.rand(8, 20)
+    loss = F.mse_loss(out, label)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    print(model.l.lora_bias)

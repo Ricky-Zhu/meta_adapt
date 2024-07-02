@@ -8,9 +8,9 @@ eval: false
 n_eval: 20
 eval_in_train: false
 exp_dir: './experiments/lora_adaptation/'
-pre_trained_model_path: '../scripts/experiments/LIBERO_SPATIAL/PreTrainMultitask/BCViLTPolicy_seed10000/run_003/multitask_model_ep20.pth'
+pre_trained_model_path: '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
 seed: 100
-policy_type: 'LoraBCViLTPolicy'
+policy_type: 'LoraBCTPolicy'
 batch_size: 16
 optim_name: torch.optim.AdamW
 

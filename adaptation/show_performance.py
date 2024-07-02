@@ -3,7 +3,8 @@ import os
 
 
 suite = 'LIBERO_SPATIAL'
-path = f"../scripts/experiments/lora_adaptation/{suite}/LoraBCViLTPolicy"
+policy_type = 'LoraBCTPolicy'
+path = f"../scripts/experiments/lora_adaptation/{suite}/{policy_type}"
 
 summary = {}
 
