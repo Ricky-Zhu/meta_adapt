@@ -33,7 +33,7 @@ class PreTrainMultitask(Sequential):
         model_checkpoint_name = os.path.join(
             self.experiment_dir, f"multitask_model.pth"
         )
-        pretrain_tasks = list(range(self.cfg.task_creation.pre_training_num))
+        pretrain_tasks = self.cfg.task_creation.select_tasks
 
         train_dataloader = DataLoader(
             concat_dataset,
@@ -44,10 +44,6 @@ class PreTrainMultitask(Sequential):
         )
 
         prev_success_rate = -1.0
-        best_state_dict = self.policy.state_dict()  # currently save the best model
-
-        # for evaluate how fast the agent learns on current task, this corresponds
-        # to the area under success rate curve on the new task.
         cumulated_counter = 0.0
         idx_at_best_succ = 0
         successes = []
@@ -64,13 +60,6 @@ class PreTrainMultitask(Sequential):
                 loss = self.observe(data)
                 training_loss += loss
             training_loss /= len(train_dataloader)
-            # else:  # just evaluate the zero-shot performance on 0-th epoch
-            #     training_loss = 0.0
-            #     #
-            #     for (idx, data) in enumerate(train_dataloader):
-            #         loss = self.eval_observe(data)
-            #         training_loss += loss
-            #     training_loss /= len(train_dataloader)
 
             t1 = time.time()
 
@@ -78,7 +67,7 @@ class PreTrainMultitask(Sequential):
                 f"[info] Epoch: {epoch:3d} | train loss: {training_loss:5.2f} | time: {(t1 - t0) / 60:4.2f}"
             )
 
-            if epoch % self.cfg.eval.eval_every == 0:  # evaluate BC loss
+            if epoch % self.cfg.eval.eval_every == 0:
                 t0 = time.time()
                 self.policy.eval()
 

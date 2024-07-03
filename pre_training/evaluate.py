@@ -48,117 +48,54 @@ import robomimic.utils.tensor_utils as TensorUtils
 
 import time
 from glob import glob
-
-benchmark_map = {
-    "libero_10": "LIBERO_10",
-    "libero_spatial": "LIBERO_SPATIAL",
-    "libero_object": "LIBERO_OBJECT",
-    "libero_goal": "LIBERO_GOAL",
-}
-
-algo_map = {
-    "base": "Sequential",
-    "er": "ER",
-    "ewc": "EWC",
-    "packnet": "PackNet",
-    "multitask": "Multitask",
-}
-
-policy_map = {
-    "bc_rnn_policy": "BCRNNPolicy",
-    "bc_transformer_policy": "BCTransformerPolicy",
-    "bc_vilt_policy": "BCViLTPolicy",
-}
+from omegaconf import OmegaConf
+from easydict import EasyDict
+import yaml
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Evaluation Script")
-    parser.add_argument("--experiment_dir", type=str, default="experiments")
-    # for which task suite
-    parser.add_argument(
-        "--benchmark",
-        type=str,
-        required=True,
-        choices=["libero_10", "libero_spatial", "libero_object", "libero_goal"],
-        default='libero_object'
-    )
-    parser.add_argument("--task_id", type=int, required=True)
-    parser.add_argument(
-        "--policy",
-        type=str,
-        required=True,
-        choices=["bc_rnn_policy", "bc_transformer_policy", "bc_vilt_policy"],
-        default='bc_transformer_policy'
-    )
-    parser.add_argument("--seed", type=int, required=True, default=10000)
-    parser.add_argument("--ep", type=int)
-    parser.add_argument("--load_task", type=int)
-    parser.add_argument("--device_id", type=int)
-    parser.add_argument("--save-videos", action="store_true")
-    # parser.add_argument('--save_dir',  type=str, required=True)
-    args = parser.parse_args()
-    args.device_id = "cuda:" + str(args.device_id)
-    args.save_dir = f"{args.experiment_dir}_saved"
+@hydra.main(config_path="../configs", config_name="pre_training", version_base=None)
+def main(hydra_cfg):
+    yaml_config = OmegaConf.to_yaml(hydra_cfg)
+    cfg = EasyDict(yaml.safe_load(yaml_config))
 
-    # if args.algo == "multitask":
-    #     assert args.ep in list(
-    #         range(0, 50, 5)
-    #     ), "[error] ep should be in [0, 5, ..., 50]"
+    # control seed
+    control_seed(cfg.seed)
+
+    # prepare lifelong learning
+    cfg.folder = get_libero_path("datasets")
+    cfg.bddl_folder = get_libero_path("bddl_files")
+    cfg.init_states_folder = get_libero_path("init_states")
+
+    N_EVAL = 2  # change this to 5 if want to save obs
+    base_path = f'../scripts/experiments/{cfg.benchmark_name}/PreTrainMultitask/BCViLTPolicy_seed10000/'
+    print("use the newest model folder .")
+    folders = sorted(glob(os.path.join(base_path, 'run_*')))
+    model_path_folder = folders[-1]
+    # if use_newest:
+    #     print("use the newest model folder .")
+    #     folders = sorted(glob(os.path.join(base_path, 'run_*')))
+    #     model_path_folder = folders[-1]
     # else:
-    #     assert args.load_task in list(
-    #         range(10)
-    #     ), "[error] load_task should be in [0, ..., 9]"
-    # return args
-
-
-def main(args):
-    if args.task_suite == 'object':
-        suf = 'LIBERO_OBJECT'
-    elif args.task_suite == 'spatial':
-        suf = 'LIBERO_SPATIAL'
-    elif args.task_suite == 'goal':
-        suf = 'LIBERO_GOAL'
-    else:
-        raise NotImplementedError
-    seed = args.seed
-    use_newest = args.use_newest
-    specific_folder = args.folder
-    N_EVAL = 5 if args.save_obs else 20
-    base_path = f'./experiments/{suf}/PreTrainMultitask/BCViLTPolicy_seed10000/'
-    if use_newest:
-        print("use the newest model folder .")
-        folders = sorted(glob(os.path.join(base_path, 'run_*')))
-        model_path_folder = folders[-1]
-    else:
-        assert specific_folder is not None, "specify the model folder!"
-        model_path_folder = os.path.join(base_path, specific_folder)
-        # model_path_folder = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003'
+    #     assert specific_folder is not None, "specify the model folder!"
+    #     model_path_folder = os.path.join(base_path, specific_folder)
+    # model_path_folder = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003'
     print(model_path_folder)
     files = glob(model_path_folder + '/*.pth')
     # files = [os.path.join(model_path_folder, 'multitask_model.pth')]
     for model_path in files:
 
-        sd, cfg, previous_mask = torch_load_model(
+        sd, pre_train_cfg, previous_mask = torch_load_model(
             model_path, map_location=None
         )
-
-        use_seed = cfg.seed if seed is None else seed
-        control_seed(use_seed)
-        cfg.folder = get_libero_path("datasets")
-        cfg.bddl_folder = get_libero_path("bddl_files")
-        cfg.init_states_folder = get_libero_path("init_states")
-
+        cfg.shape_meta = pre_train_cfg.shape_meta
         algo = safe_device(eval('PreTrainMultitask')(10, cfg), 'cuda')
         algo.policy.previous_mask = previous_mask
 
         algo.policy.load_state_dict(sd)
 
-        if not hasattr(cfg.data, "task_order_index"):
-            cfg.data.task_order_index = 0
-
         # get the benchmark the task belongs to
-        benchmark = get_benchmark(cfg.benchmark_name)(cfg.data.task_order_index)
-        descriptions = [benchmark.get_task(i).language for i in range(10)]
+        benchmark = get_benchmark(cfg.benchmark_name)(cfg.task_creation.task_order)
+        descriptions = [benchmark.get_task(i).language for i in range(benchmark.n_tasks)]
         task_embs = get_task_embs(cfg, descriptions)
         benchmark.set_task_embs(task_embs)
 
@@ -178,10 +115,12 @@ def main(args):
         print('#####################')
         print(f'{model_path.split("/")[-1]}')
         algo.eval()
-        for task_id in range(benchmark.n_tasks):
+        for i in range(len(cfg.task_creation.select_tasks)):
+            task_id = cfg.task_creation.select_tasks[i]
             task_obs_buffer = []
             task = benchmark.get_task(task_id)
             task_emb = benchmark.get_task_emb(task_id)
+
             env_args = {
                 "bddl_file_name": os.path.join(
                     cfg.bddl_folder, task.problem_folder, task.bddl_file
@@ -242,7 +181,7 @@ def main(args):
                 while steps < cfg.eval.max_steps:
                     steps += 1
                     data = raw_obs_to_tensor_obs(obs, task_emb, cfg)
-                    task_obs_buffer.append(data['obs'])
+                    # task_obs_buffer.append(data['obs'])
                     actions = algo.policy.get_action(data)
 
                     obs, reward, done, info = env.step(actions)
@@ -262,11 +201,11 @@ def main(args):
             success_rate = num_success / cfg.eval.n_eval
             env.close()
 
-            print(f'task {task_id}: {success_rate}')
+            print(f'task {task_id} {task.language} :{success_rate}')
 
-            with open(os.path.join(model_path_folder, f'task_{task_id}.pkl'), 'wb') as f:
-                pkl.dump(task_obs_buffer, f)
-                f.close()
+            # with open(os.path.join(model_path_folder, f'task_{task_id}.pkl'), 'wb') as f:
+            #     pkl.dump(task_obs_buffer, f)
+            #     f.close()
 
         print('*************************')
 
@@ -278,13 +217,4 @@ if __name__ == "__main__":
     if multiprocessing.get_start_method(allow_none=True) != "spawn":
         multiprocessing.set_start_method("spawn", force=True)
 
-    import argparse
-
-    parse = argparse.ArgumentParser()
-    parse.add_argument('--seed', type=int, default=100)
-    parse.add_argument('--use_newest', action='store_false')
-    parse.add_argument('--save_obs', action='store_true')
-    parse.add_argument('--folder', type=str, default=None)
-    parse.add_argument('--task_suite', type=str, default='object')
-    args = parse.parse_args()
-    main(args)
+    main()

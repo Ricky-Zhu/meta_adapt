@@ -17,8 +17,8 @@ meta_support_num: 5
 meta_query_num: 15
 seed: 10000
 exp_dir: './experiments/lora_online_adaptation/'
-pre_trained_model_path: '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
-policy_type: 'LoraBCTPolicy'
+pre_trained_model_path: '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCViLTPolicy_seed10000/run_013/multitask_model_ep30.pth'
+policy_type: 'LoraBCViLTPolicy'
 optim_name: torch.optim.AdamW
 
 meta_optim_kwargs:

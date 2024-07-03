@@ -3,7 +3,7 @@
 defaults:
   - _self_
   - data: default
-  - policy: bc_transformer_policy
+  - policy: bc_vilt_policy
   - train: default
   - eval: default
   - lifelong: pretrain_multitask
@@ -22,4 +22,4 @@ task_embedding_format: "bert"
 task_embedding_one_hot_offset: 1
 pretrain: false
 pretrain_model_path: ""
-benchmark_name: "LIBERO_OBJECT"
+benchmark_name: "LIBERO_90"

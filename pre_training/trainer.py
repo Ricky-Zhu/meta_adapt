@@ -63,19 +63,20 @@ def main(hydra_cfg):
     ##################### get the dataset (pre_training and adaptation) ####################
 
     benchmark = get_benchmark(cfg.task_creation.task_suite)(cfg.task_creation.task_order)
-    n_manip_tasks = benchmark.n_tasks
 
     # prepare datasets from the benchmark
     manip_datasets = []
     descriptions = []
     shape_meta = None
 
-    for i in range(n_manip_tasks):
+    select_tasks = cfg.task_creation.select_tasks
+
+    for i in range(len(select_tasks)):
         # currently we assume tasks from same benchmark have the same shape_meta
         try:
             task_i_dataset, shape_meta = get_dataset(
                 dataset_path=os.path.join(
-                    cfg.folder, benchmark.get_task_demonstration(i)
+                    cfg.folder, benchmark.get_task_demonstration(select_tasks[i])
                 ),
                 obs_modality=cfg.data.obs.modality,
                 initialize_obs_utils=(i == 0),
@@ -83,41 +84,42 @@ def main(hydra_cfg):
             )
         except Exception as e:
             print(
-                f"[error] failed to load task {i} name {benchmark.get_task_names()[i]}"
+                f"[error] failed to load task {select_tasks[i]} name {benchmark.get_task_names()[select_tasks[i]]}"
             )
             print(f"[error] {e}")
         # add language to the vision dataset, hence we call vl_dataset
-        task_description = benchmark.get_task(i).language
+        task_description = benchmark.get_task(select_tasks[i]).language
         descriptions.append(task_description)
         manip_datasets.append(task_i_dataset)
 
     task_embs = get_task_embs(cfg, descriptions)
-    benchmark.set_task_embs(task_embs)
+
+    # to set the task emb for the benchmark, we need to iterate all the tasks
+    all_task_descriptions = []
+    for i in range(benchmark.n_tasks):
+        all_task_descriptions.append(benchmark.get_task(i).language)
+    all_task_embs = get_task_embs(cfg, all_task_descriptions)
+    benchmark.set_task_embs(all_task_embs)
 
     pre_training_dataset = [SequenceVLDataset(ds, emb) for (ds, emb) in
-                            zip(manip_datasets[:cfg.task_creation.pre_training_num],
-                                task_embs[:cfg.task_creation.pre_training_num])]
+                            zip(manip_datasets, task_embs)]
 
     print("\n=================== Pretraining ===================")
     print(f" Name: {benchmark.name}")
-    print(f" # Tasks: {cfg.task_creation.pre_training_num}")
+    print(f" # Tasks: {cfg.task_creation.select_tasks}")
 
-    for i in range(cfg.task_creation.pre_training_num):
-        print(f"    - Task {i + 1}:")
-        print(f"        {benchmark.get_task(i).language}")
+    for i in range(len(cfg.task_creation.select_tasks)):
+        print(f"    - Task {cfg.task_creation.select_tasks[i]}:")
+        print(f"        {benchmark.get_task(cfg.task_creation.select_tasks[i]).language}")
     print("=======================================================================\n")
 
     # prepare experiment and update the config
     create_experiment_dir(cfg)
     cfg.shape_meta = shape_meta
 
-    if cfg.use_wandb:
-        wandb.init(project="libero_pretraining", config=cfg)
-        wandb.run.name = cfg.experiment_name
-
     algo = safe_device(get_algo_class(cfg.lifelong.algo)(n_tasks=1, cfg=cfg), cfg.device)
 
-    print(f"[info] start lifelong learning with algo {cfg.lifelong.algo}")
+    print(f"[info] start pre training!")
 
     # save the experiment config file, so we can resume or replay later
     with open(os.path.join(cfg.experiment_dir, "config.json"), "w") as f:
@@ -127,8 +129,6 @@ def main(hydra_cfg):
     algo.learn_all_tasks(pre_training_dataset, benchmark)
 
     print("[info] finished learning\n")
-    if cfg.use_wandb:
-        wandb.finish()
 
 
 if __name__ == "__main__":

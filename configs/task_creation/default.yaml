@@ -1,3 +1,4 @@
 task_order: 0
-pre_training_num: 5
-task_suite: "libero_object"
+task_suite: "libero_90"
+select_tasks: [1, 2, 5, 8, 9, 10, 11, 15, 16, 17, 18, 21, 23, 28, 29, 30, 31, 32, 33, 34, 35, 39, 59, 71, 77, 88] # use this when task suite is libero_90
+#select_tasks: [1,2,4]
