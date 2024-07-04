@@ -24,8 +24,6 @@ class PreTrainMultitask(Sequential):
 
     def __init__(self, n_tasks, cfg, **policy_kwargs):
         super().__init__(n_tasks=n_tasks, cfg=cfg, **policy_kwargs)
-        if self.cfg.multi_gpu:
-            self.policy = nn.DataParallel(self.policy)
 
     def learn_all_tasks(self, datasets, benchmark):
         self.start_task(-1)
@@ -77,10 +75,7 @@ class PreTrainMultitask(Sequential):
                     model_checkpoint_name_ep = os.path.join(
                         self.experiment_dir, f"multitask_model_ep{epoch}.pth"
                     )
-                    if self.cfg.multi_gpu:
-                        torch_save_model(self.policy.module, model_checkpoint_name_ep, cfg=self.cfg)
-                    else:
-                        torch_save_model(self.policy, model_checkpoint_name_ep, cfg=self.cfg)
+                    torch_save_model(self.policy, model_checkpoint_name_ep, cfg=self.cfg)
                 losses.append(training_loss)
 
                 # for multitask learning, we provide an option whether to evaluate
