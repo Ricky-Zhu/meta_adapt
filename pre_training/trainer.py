@@ -126,8 +126,6 @@ def main(hydra_cfg):
         json.dump(cfg, f, cls=NpEncoder, indent=4)
 
     algo.train()
-    temp = nn.DataParallel(algo.policy)
-    algo.policy = temp.module
     algo.learn_all_tasks(pre_training_dataset, benchmark)
 
     print("[info] finished learning\n")
