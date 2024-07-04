@@ -16,9 +16,9 @@ import hydra
 import numpy as np
 import wandb
 import yaml
-import torch
+import torch.nn as nn
 from easydict import EasyDict
-from hydra.utils import to_absolute_path
+
 from omegaconf import OmegaConf
 
 from libero.libero import get_libero_path
@@ -126,6 +126,8 @@ def main(hydra_cfg):
         json.dump(cfg, f, cls=NpEncoder, indent=4)
 
     algo.train()
+    temp = nn.DataParallel(algo.policy)
+    algo.policy = temp.module
     algo.learn_all_tasks(pre_training_dataset, benchmark)
 
     print("[info] finished learning\n")
