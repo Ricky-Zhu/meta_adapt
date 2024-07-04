@@ -9,6 +9,7 @@ from pre_training_algo import PreTrainMultitask
 import sys
 from os.path import dirname, abspath
 import multiprocessing
+import logging
 
 sys.path.append(dirname(dirname(abspath(__file__))))
 # TODO: find a better way for this?
@@ -20,7 +21,7 @@ import pprint
 import time
 import torch
 import robomimic.utils.file_utils as FileUtils
-
+from tqdm import tqdm
 from libero.libero import get_libero_path
 from libero.libero.benchmark import get_benchmark
 from libero.libero.envs import OffScreenRenderEnv, SubprocVectorEnv, DummyVectorEnv
@@ -80,6 +81,9 @@ def main(hydra_cfg):
     #     model_path_folder = os.path.join(base_path, specific_folder)
     # model_path_folder = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003'
     print(model_path_folder)
+    logger_path = os.path.join(model_path_folder, 'evaluate.log')
+    logging.basicConfig(filename=logger_path, level=logging.INFO, format='%(message)s')
+
     files = glob(model_path_folder + '/*.pth')
     # files = [os.path.join(model_path_folder, 'multitask_model.pth')]
     for model_path in files:
@@ -88,6 +92,7 @@ def main(hydra_cfg):
             model_path, map_location=None
         )
         cfg.shape_meta = pre_train_cfg.shape_meta
+        cfg.experiment_dir = pre_train_cfg.experiment_dir
         algo = safe_device(eval('PreTrainMultitask')(10, cfg), 'cuda')
         algo.policy.previous_mask = previous_mask
 
@@ -112,10 +117,13 @@ def main(hydra_cfg):
         )
         ### ======================= start evaluation ============================
         start_time = time.time()
-        print('#####################')
-        print(f'{model_path.split("/")[-1]}')
+        # print('#####################')
+        # print(f'{model_path.split("/")[-1]}')
+        logging.info('################')
+        logging.info(f'{model_path.split("/")[-1]}')
         algo.eval()
-        for i in range(len(cfg.task_creation.select_tasks)):
+        avg_suc = []
+        for i in tqdm(range(len(cfg.task_creation.select_tasks))):
             task_id = cfg.task_creation.select_tasks[i]
             task_obs_buffer = []
             task = benchmark.get_task(task_id)
@@ -199,15 +207,18 @@ def main(hydra_cfg):
                         num_success += int(dones[k])
 
             success_rate = num_success / cfg.eval.n_eval
+            avg_suc.append(success_rate)
             env.close()
-
-            print(f'task {task_id} {task.language} :{success_rate}')
+            logging.info(f'task {task_id} {task.language} :{success_rate}')
+            # print(f'task {task_id} {task.language} :{success_rate}')
 
             # with open(os.path.join(model_path_folder, f'task_{task_id}.pkl'), 'wb') as f:
             #     pkl.dump(task_obs_buffer, f)
             #     f.close()
 
-        print('*************************')
+        # print('*************************')
+        logging.info(f'avg_suc:{np.mean(avg_suc)}')
+        logging.info('######################')
 
         # end_time = time.time()
         # print(f'cost time {end_time - start_time}')
