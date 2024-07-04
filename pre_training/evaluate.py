@@ -9,7 +9,7 @@ from pre_training_algo import PreTrainMultitask
 import sys
 from os.path import dirname, abspath
 import multiprocessing
-import logging
+from datetime import datetime
 
 sys.path.append(dirname(dirname(abspath(__file__))))
 # TODO: find a better way for this?
@@ -78,7 +78,7 @@ def main(hydra_cfg):
     cfg.bddl_folder = get_libero_path("bddl_files")
     cfg.init_states_folder = get_libero_path("init_states")
 
-    N_EVAL = 2  # change this to 5 if want to save obs
+    N_EVAL = 20  # change this to 5 if want to save obs
     base_path = f'../scripts/experiments/{cfg.benchmark_name}/PreTrainMultitask/BCViLTPolicy_seed10000/'
     print("use the newest model folder .")
     folders = sorted(glob(os.path.join(base_path, 'run_*')))
@@ -98,7 +98,13 @@ def main(hydra_cfg):
     logger = SimpleLogger(logger_path=logger_path)
     logger.write_and_print(model_path_folder, to_print=True)
     files = glob(model_path_folder + '/*.pth')
-    # files = [os.path.join(model_path_folder, 'multitask_model.pth')]
+
+    start_time = datetime.now()
+
+    # Format the date and time
+    start_time = start_time.strftime("%Y-%m-%d %H:%M:%S")
+    logger.write_and_print(f'start time: {start_time}')
+
     for model_path in files:
 
         sd, pre_train_cfg, previous_mask = torch_load_model(
@@ -236,6 +242,11 @@ def main(hydra_cfg):
 
         # end_time = time.time()
         # print(f'cost time {end_time - start_time}')
+    end_time = datetime.now()
+
+    # Format the date and time
+    end_time = end_time.strftime("%Y-%m-%d %H:%M:%S")
+    logger.write_and_print(f'end time: {end_time}')
 
 
 if __name__ == "__main__":
