@@ -131,15 +131,9 @@ class PreTrainMultitask(Sequential):
             losses[idx_at_best_succ:] = loss_at_best_succ
             successes[idx_at_best_succ:] = success_at_best_succ
 
-    def adapt(self, adapt_datasets, benchmark, adapt_task_id, which_bias_train):
+    def adapt(self, adapt_datasets, which_bias_train):
         self.start_task(-1)
         concat_dataset = ConcatDataset(adapt_datasets)
-
-        # learn on all tasks, only used in multitask learning
-        model_checkpoint_name = os.path.join(
-            self.experiment_dir, f"lora_model.pth"
-        )
-        adapt_task = [adapt_task_id]
 
         train_dataloader = DataLoader(
             concat_dataset,
@@ -149,19 +143,8 @@ class PreTrainMultitask(Sequential):
             persistent_workers=True,
         )
 
-        prev_success_rate = -1.0
-        # best_state_dict = self.policy.state_dict()  # currently save the best model
-
-        # for evaluate how fast the agent learns on current task, this corresponds
-        # to the area under success rate curve on the new task.
-        cumulated_counter = 0.0
-        idx_at_best_succ = 0
-        successes = []
-        losses = []
-
         # start training
         for epoch in range(1, self.cfg.adaptation.n_epochs + 1):
-
             t0 = time.time()
 
             self.policy.train()
@@ -178,7 +161,6 @@ class PreTrainMultitask(Sequential):
             )
 
             if epoch % self.cfg.adaptation.eval_every == 0:
-                t0 = time.time()
                 model_checkpoint_name_ep = os.path.join(
                     self.experiment_dir, f"lora_model_ep{epoch}.pth"
                 )
@@ -188,39 +170,6 @@ class PreTrainMultitask(Sequential):
                     "state_dict": lora.lora_state_dict(self.policy, bias=which_bias_train),
                     "cfg": self.cfg,
                 }, model_checkpoint_name_ep)
-
-                losses.append(training_loss)
-
-                if self.cfg.adaptation.eval:
-                    self.policy.eval()
-
-                    success_rates = self.evaluate_during_adapt(self.cfg, self, benchmark, adapt_task)
-                    success_rate = np.mean(success_rates)
-
-                    successes.append(success_rate)
-
-                    if prev_success_rate < success_rate and (not self.cfg.pretrain):
-                        # torch_save_model(self.policy, model_checkpoint_name, cfg=self.cfg)
-                        torch.save({
-                            "state_dict": lora.lora_state_dict(self.policy, bias=which_bias_train),
-                            "cfg": self.cfg,
-                        }, model_checkpoint_name)
-                        prev_success_rate = success_rate
-                        idx_at_best_succ = len(losses) - 1
-
-                    t1 = time.time()
-
-                    cumulated_counter += 1.0
-                    ci = confidence_interval(success_rate, self.cfg.eval.n_eval)
-                    tmp_successes = np.array(successes)
-                    tmp_successes[idx_at_best_succ:] = successes[idx_at_best_succ]
-
-                    if self.cfg.adaptation.eval_in_train:
-                        print(
-                            f"[info] Epoch: {epoch:3d} | succ: {success_rate:4.2f} ± {ci:4.2f} | best succ: {prev_success_rate} "
-                            + f"| succ. AoC {tmp_successes.sum() / cumulated_counter:4.2f} | time: {(t1 - t0) / 60:4.2f}",
-                            flush=True,
-                        )
 
     def start_task(self, task):
         """

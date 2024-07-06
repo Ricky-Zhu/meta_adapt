@@ -23,7 +23,7 @@ from termcolor import colored
 
 @hydra.main(config_path="../configs", config_name="adaptation", version_base=None)
 def main(adapt_cfg):
-    def evaluate_one_repo_adaptor(pre_train_model_path, adaptor_model_path):
+    def evaluate_one_repo_adaptor(pre_train_model_path, adaptor_model_path, eval_ind):
         # load the pre-trained model and adaptor model
         sd, pre_train_cfg, previous_mask = torch_load_model(
             pre_train_model_path, map_location=None
@@ -34,7 +34,7 @@ def main(adapt_cfg):
         cfg = model_dict['cfg']
         lora_model_sd = model_dict['state_dict']
 
-        # which_bias_train = 'lora_only' if not cfg.train_all_bias else 'all'
+        adapt_cfg = cfg.adaptation
 
         control_seed(adapt_cfg.seed)
         cfg.folder = get_libero_path("datasets")
@@ -49,12 +49,9 @@ def main(adapt_cfg):
 
         ##########################
 
-        if not hasattr(cfg.data, "task_order_index"):
-            cfg.data.task_order_index = 0
-
         # get the benchmark the task belongs to
-        benchmark = get_benchmark(cfg.benchmark_name)(cfg.data.task_order_index)
-        descriptions = [benchmark.get_task(i).language for i in range(10)]
+        benchmark = get_benchmark(adapt_cfg.adaption_suite)()
+        descriptions = [benchmark.get_task(i).language for i in range(benchmark.n_tasks)]
         task_embs = get_task_embs(cfg, descriptions)
         benchmark.set_task_embs(task_embs)
 
@@ -70,35 +67,44 @@ def main(adapt_cfg):
             dataset_path=dataset_path, all_obs_keys=all_obs_keys, verbose=False
         )
         ### ======================= start evaluation ============================
-        task_id = [cfg.adaptation.adaptation_task_id]
+        if adapt_cfg.adapt_all:
+            task_ids = list(range(benchmark.n_tasks))
+        else:
+            task_ids = adapt_cfg.adaptation_tasks
 
-        # cfg.eval.n_eval=20 if want to set a different eval num as that in the exp
-        success_rate = evaluate_success_all_init_condtions(cfg, algo, benchmark, task_id)
-        task_id = cfg.adaptation.adaptation_task_id
+        if eval_ind == 0:
+            print(f'adapt on {len(task_ids)} tasks from {cfg.adaptation.adaption_suite}')
+            for task in task_ids:
+                print(f'task {task}: {descriptions[task]}')
+
+        cfg.eval.n_eval = 20
+        success_rate = evaluate_success_all_init_condtions(cfg, algo, benchmark, task_ids)
         demo_num = cfg.adaptation.adapt_demo_num_each_task
-        success_rate = success_rate
-        return task_id, demo_num, success_rate
+        return task_ids, demo_num, success_rate
 
-    # pre_trained_model_path = '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth'
-    benchmark_name = adapt_cfg.pre_trained_model_path.split('/')[-5]
-    adaptor_model_paths = os.path.join(adapt_cfg.exp_dir, benchmark_name, adapt_cfg.policy_type,
-                                       f'task_{adapt_cfg.adaptation_task_id}',
-                                       f'demo_{adapt_cfg.adapt_demo_num_each_task}',
-                                       f'seed_{adapt_cfg.seed}')
+    base_path = os.path.join(adapt_cfg.exp_dir, adapt_cfg.adaption_suite, adapt_cfg.policy_type,
+                             f'demo_{adapt_cfg.adapt_demo_num_each_task}',
+                             f'seed_{adapt_cfg.seed}')
 
-    pth_paths = glob(os.path.join(adaptor_model_paths, "*pth"))
+    newest_run = glob(os.path.join(base_path, 'run_*'))
+    newest_run.sort()
+    newest_run = newest_run[-1]
+
+    pth_paths = glob(os.path.join(newest_run, "*pth"))
     best_suc = -1.0
     best_ep = None
-    for path in pth_paths:
-
-        task_id, demo_num, success_rate = evaluate_one_repo_adaptor(adapt_cfg.pre_trained_model_path, path)
+    for i in range(len(pth_paths)):
+        path = pth_paths[i]
+        task_id, demo_num, success_rate = evaluate_one_repo_adaptor(adapt_cfg.pre_trained_model_path, path, eval_ind=i)
         print(task_id, demo_num, success_rate, path)
+        success_rate = np.mean(success_rate)
+        print(f'avg:{success_rate}')
         if success_rate > best_suc:
             best_suc = success_rate
             best_ep = path
-    final_sentence = f'task:{task_id}, demo_num:{demo_num}, seed:{adapt_cfg.seed}, best suc:{best_suc}, best_ep:{best_ep}'
+    final_sentence = f'best suc:{best_suc}, best_ep:{best_ep}'
     print(colored(final_sentence, 'red'))
-    with open(os.path.join(adaptor_model_paths, 'performance.txt'), 'w') as f:
+    with open(os.path.join(newest_run, 'performance.txt'), 'w') as f:
         f.write(final_sentence)
     f.close()
 

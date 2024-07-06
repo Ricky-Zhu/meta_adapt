@@ -49,7 +49,7 @@ def main(adaptation_cfg):
     cfg.init_states_folder = get_libero_path("init_states")
 
     #################################
-    benchmark = get_benchmark(cfg.task_creation.task_suite)(cfg.task_creation.task_order)
+    benchmark = get_benchmark(cfg.adaptation.adaption_suite)()
     n_manip_tasks = benchmark.n_tasks
     descriptions = [benchmark.get_task(i).language for i in range(n_manip_tasks)]
     task_embs = get_task_embs(cfg, descriptions)
@@ -57,13 +57,23 @@ def main(adaptation_cfg):
 
     # prepare datasets from the benchmark
     manip_datasets = []
+    if cfg.adaptation.adapt_all:
+        adaptation_tasks = list(range(n_manip_tasks))
+    else:
+        adaptation_tasks = cfg.adaptation.adaptation_tasks
 
-    for i in range(n_manip_tasks):
+    print(f'adapt on {len(adaptation_tasks)} tasks from {cfg.adaptation.adaption_suite}')
+    for task in adaptation_tasks:
+        print(f'task {task}: {descriptions[task]}')
+    for i in range(len(adaptation_tasks)):
+        print(descriptions[adaptation_tasks[i]])
+
+    for i in range(len(adaptation_tasks)):
         # currently we assume tasks from same benchmark have the same shape_meta
         try:
             task_i_dataset, shape_meta = get_dataset(
                 dataset_path=os.path.join(
-                    cfg.folder, benchmark.get_task_demonstration(i)
+                    cfg.folder, benchmark.get_task_demonstration(adaptation_tasks[i])
                 ),
                 obs_modality=cfg.data.obs.modality,
                 initialize_obs_utils=(i == 0),
@@ -77,20 +87,37 @@ def main(adaptation_cfg):
             print(f"[error] {e}")
         manip_datasets.append(task_i_dataset)
 
-    post_adaptation_dataset = [SequenceVLDataset(manip_datasets[cfg.adaptation.adaptation_task_id],
-                                                 task_embs[cfg.adaptation.adaptation_task_id])]
+    adaptation_task_embs = []
+    for i in range(len(adaptation_tasks)):
+        adaptation_task_embs.append(task_embs[adaptation_tasks[i]])
+    post_adaptation_dataset = [SequenceVLDataset(md, te) for md, te in zip(manip_datasets, adaptation_task_embs)]
 
     ##################################
     # model with lora definition
     cfg.policy.policy_type = cfg.adaptation.policy_type
-    cfg.eval.n_eval = cfg.adaptation.n_eval  # the number of evaluations in the adaptation
+    cfg.eval.n_eval = cfg.adaptation.n_eval  # the number of evaluations in the adaptation, not used in out exp
 
     # remove the previous experiment dir so that the initialization of algo will create a new exp dir
     cfg.pop('experiment_dir')
-    cfg.experiment_dir = os.path.join(cfg.adaptation.exp_dir, cfg.benchmark_name, cfg.policy.policy_type,
-                                      f'task_{cfg.adaptation.adaptation_task_id}',
-                                      f'demo_{cfg.adaptation.adapt_demo_num_each_task}',
-                                      f'seed_{cfg.adaptation.seed}')  # load the customized experiment dir (e.g. ./experiment/lora_adaptation/task_7)
+    experiment_dir = os.path.join(cfg.adaptation.exp_dir, cfg.adaptation.adaption_suite, cfg.policy.policy_type,
+                                  f'demo_{cfg.adaptation.adapt_demo_num_each_task}',
+                                  f'seed_{cfg.adaptation.seed}')  # load the customized experiment dir (e.g. ./experiment/lora_adaptation/task_7)
+
+    experiment_id = 0
+    for path in Path(experiment_dir).glob("run_*"):
+        if not path.is_dir():
+            continue
+        try:
+            folder_id = int(str(path).split("run_")[-1])
+            if folder_id > experiment_id:
+                experiment_id = folder_id
+        except BaseException:
+            pass
+    experiment_id += 1
+
+    cfg.experiment_dir = os.path.join(experiment_dir, f'run_{experiment_id:03d}')
+
+    print(f'experiment dir:{cfg.experiment_dir}')
     if not os.path.exists(cfg.experiment_dir):
         os.makedirs(cfg.experiment_dir)
 
@@ -107,8 +134,7 @@ def main(adaptation_cfg):
     lora.mark_only_lora_as_trainable(algo.policy, bias=which_bias_train)
 
     # prepare experiment dir and start training
-    algo.adapt(post_adaptation_dataset, benchmark, adapt_task_id=cfg.adaptation.adaptation_task_id,
-               which_bias_train=which_bias_train)
+    algo.adapt(post_adaptation_dataset, which_bias_train=which_bias_train)
 
 
 if __name__ == "__main__":
