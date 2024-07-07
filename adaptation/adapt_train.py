@@ -65,8 +65,6 @@ def main(adaptation_cfg):
     print(f'adapt on {len(adaptation_tasks)} tasks from {cfg.adaptation.adaption_suite}')
     for task in adaptation_tasks:
         print(f'task {task}: {descriptions[task]}')
-    for i in range(len(adaptation_tasks)):
-        print(descriptions[adaptation_tasks[i]])
 
     for i in range(len(adaptation_tasks)):
         # currently we assume tasks from same benchmark have the same shape_meta
@@ -90,7 +88,7 @@ def main(adaptation_cfg):
     adaptation_task_embs = []
     for i in range(len(adaptation_tasks)):
         adaptation_task_embs.append(task_embs[adaptation_tasks[i]])
-    post_adaptation_dataset = [SequenceVLDataset(md, te) for md, te in zip(manip_datasets, adaptation_task_embs)]
+    post_adaptation_dataset = [SequenceVLDataset(md, te) for (md, te) in zip(manip_datasets, adaptation_task_embs)]
 
     ##################################
     # model with lora definition
