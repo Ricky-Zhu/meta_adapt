@@ -79,7 +79,7 @@ def main(hydra_cfg):
     cfg.init_states_folder = get_libero_path("init_states")
 
     N_EVAL = 20  # change this to 5 if want to save obs
-    base_path = f'../scripts/experiments/{cfg.benchmark_name}/PreTrainMultitask/BCViLTPolicy_seed10000/'
+    base_path = f'../scripts/experiments/{cfg.benchmark_name}/PreTrainMultitask/{cfg.policy.policy_type}_seed10000/'
     print("use the newest model folder .")
     folders = sorted(glob(os.path.join(base_path, 'run_*')))
     model_path_folder = folders[-1]
