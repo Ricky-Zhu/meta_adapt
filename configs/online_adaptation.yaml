@@ -21,6 +21,9 @@ pre_trained_model_path: '../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/
 policy_type: 'LoraBCViLTPolicy'
 optim_name: torch.optim.AdamW
 
+online_adaptation_suite: 'LIBERO_OBJECT'
+select_tasks: [1,2,3]
+
 meta_optim_kwargs:
     lr: 0.0001
     betas: [ 0.9, 0.999 ]

@@ -4,6 +4,8 @@ from libero.lifelong.models.modules.transformer_modules import *
 import loralib as lora
 from loralib.layers import LoRALayer
 
+USE_MY_LORA = False
+
 
 class SimpleLoraLinear(LoRALayer, nn.Module):
     # LoRA implemented in a dense layer
@@ -58,8 +60,12 @@ class LoraAttention(nn.Module):
         self.output_layer = nn.Sequential(
             nn.Linear(num_heads * head_output_size, dim), nn.Dropout(dropout)
         )
-        self.lora_q = SimpleLoraLinear(dim, num_heads * head_output_size, r=lora_rank)
-        self.lora_v = SimpleLoraLinear(dim, num_heads * head_output_size, r=lora_rank)
+        if USE_MY_LORA:
+            self.lora_q = SimpleLoraLinear(dim, num_heads * head_output_size, r=lora_rank)
+            self.lora_v = SimpleLoraLinear(dim, num_heads * head_output_size, r=lora_rank)
+        else:
+            self.lora_q = lora.Linear(dim, num_heads * head_output_size, r=lora_rank)
+            self.lora_v = lora.Linear(dim, num_heads * head_output_size, r=lora_rank)
 
     def forward(self, x, mask=None):
         B, N, C = x.shape
@@ -99,8 +105,12 @@ class LoraAttention(nn.Module):
 class LoraTransformerFeedForwardNN(TransformerFeedForwardNN):
     def __init__(self, dim, hidden_dim, dropout, lora_rank):
         super(LoraTransformerFeedForwardNN, self).__init__(dim, hidden_dim, dropout)
-        self.lora_1 = SimpleLoraLinear(dim, hidden_dim, r=lora_rank)
-        self.lora_2 = SimpleLoraLinear(hidden_dim, dim, r=lora_rank)
+        if USE_MY_LORA:
+            self.lora_1 = SimpleLoraLinear(dim, hidden_dim, r=lora_rank)
+            self.lora_2 = SimpleLoraLinear(hidden_dim, dim, r=lora_rank)
+        else:
+            self.lora_1 = lora.Linear(dim, hidden_dim, r=lora_rank)
+            self.lora_2 = lora.Linear(hidden_dim, dim, r=lora_rank)
 
     def forward(self, x):
         x_lora1 = self.lora_1(x)
