@@ -127,7 +127,7 @@ def main(hydra_cfg):
 
     algo.train()
     algo.learn_all_tasks(pre_training_dataset, benchmark)
-
+    print(cfg.experiment_dir)
     print("[info] finished learning\n")
 
 

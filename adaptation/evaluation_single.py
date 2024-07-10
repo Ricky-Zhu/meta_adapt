@@ -102,6 +102,7 @@ def main(adapt_cfg):
         if success_rate > best_suc:
             best_suc = success_rate
             best_ep = path
+    print(f'evaluate on tasks {task_id}')
     final_sentence = f'best suc:{best_suc}, best_ep:{best_ep}'
     print(colored(final_sentence, 'red'))
     with open(os.path.join(newest_run, 'performance.txt'), 'w') as f:

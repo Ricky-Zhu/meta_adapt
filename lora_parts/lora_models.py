@@ -4,7 +4,7 @@ from libero.lifelong.models.modules.transformer_modules import *
 import loralib as lora
 from loralib.layers import LoRALayer
 
-USE_MY_LORA = False
+USE_MY_LORA = True
 
 
 class SimpleLoraLinear(LoRALayer, nn.Module):
