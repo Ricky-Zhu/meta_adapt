@@ -21,6 +21,16 @@ from pre_training.pre_training_algo import *
 from termcolor import colored
 
 
+class SimpleLogger():
+    def __init__(self, logger_path):
+        self.logger_path = logger_path
+
+    def write_and_print(self, sentence, to_print=False):
+        with open(self.logger_path, "a") as f:
+            f.write(sentence + '\n')
+        if to_print:
+            print(sentence)
+
 @hydra.main(config_path="../configs", config_name="adaptation", version_base=None)
 def main(adapt_cfg):
     def evaluate_one_repo_adaptor(pre_train_model_path, adaptor_model_path, eval_ind):
@@ -86,6 +96,8 @@ def main(adapt_cfg):
                              f'demo_{adapt_cfg.adapt_demo_num_each_task}',
                              f'seed_{adapt_cfg.seed}')
 
+    logger = SimpleLogger(logger_path=adapt_cfg.logger_path)
+
     newest_run = glob(os.path.join(base_path, 'run_*'))
     newest_run.sort()
     newest_run = newest_run[-1]
@@ -102,8 +114,10 @@ def main(adapt_cfg):
         if success_rate > best_suc:
             best_suc = success_rate
             best_ep = path
-    print(f'evaluate on tasks {task_id}')
+    logger.write_and_print(f'evaluate on tasks {task_id}',to_print=True)
     final_sentence = f'best suc:{best_suc}, best_ep:{best_ep}'
+    logger.write_and_print(final_sentence)
+    logger.write_and_print('----------------------------')
     print(colored(final_sentence, 'red'))
     with open(os.path.join(newest_run, 'performance.txt'), 'w') as f:
         f.write(final_sentence)

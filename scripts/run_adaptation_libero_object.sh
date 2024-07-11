@@ -1,5 +1,5 @@
-seed=0
-demo_num=10
+seed=$1
+demo_num=$2
 suite=LIBERO_OBJECT
 pre_trained_model_path=../scripts/experiments/LIBERO_OBJECT/PreTrainMultitask/BCTransformerPolicy_seed10000/run_003/multitask_model.pth
 policy_type=LoraBCTPolicy

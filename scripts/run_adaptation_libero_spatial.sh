@@ -1,5 +1,5 @@
-seed=0
-demo_num=10
+seed=$1
+demo_num=$2
 suite=LIBERO_SPATIAL
 pre_trained_model_path=../scripts/experiments/LIBERO_SPATIAL/PreTrainMultitask/BCTransformerPolicy_seed10000/run_001/multitask_model_ep50.pth
 policy_type=LoraBCTPolicy

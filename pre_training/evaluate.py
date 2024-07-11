@@ -84,9 +84,9 @@ def main(hydra_cfg):
     folders = sorted(glob(os.path.join(base_path, 'run_*')))
     model_path_folder = folders[-1]
     logger_path = os.path.join(model_path_folder, 'evaluate.txt')
-    if os.path.exists(logger_path):
-        print('there exist evaluation log now remove it')
-        os.remove(logger_path)
+    # if os.path.exists(logger_path):
+    #     print('there exist evaluation log now remove it')
+    #     os.remove(logger_path)
     # if use_newest:
     #     print("use the newest model folder .")
     #     folders = sorted(glob(os.path.join(base_path, 'run_*')))
