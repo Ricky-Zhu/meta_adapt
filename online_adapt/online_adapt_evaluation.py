@@ -95,24 +95,6 @@ def main(om_cfg):
 
         return success_rate
 
-    def update_log_summary(log_dict, task_id, demo_num, success_rate, exp_path):
-        if not f'task {task_id}' in log_dict.keys():
-            log_dict[f'task {task_id}'] = {}
-            log_dict[f'task {task_id}'][f'demo {demo_num}'] = {}
-            log_dict[f'task {task_id}'][f'demo {demo_num}']['success_rate'] = success_rate
-            log_dict[f'task {task_id}'][f'demo {demo_num}']['path'] = exp_path
-
-        else:
-            if not f'demo {demo_num}' in log_dict[f'task {task_id}']:
-                log_dict[f'task {task_id}'][f'demo {demo_num}'] = {}
-                log_dict[f'task {task_id}'][f'demo {demo_num}']['success_rate'] = success_rate
-                log_dict[f'task {task_id}'][f'demo {demo_num}']['path'] = exp_path
-            else:
-                if success_rate > log_dict[f'task {task_id}'][f'demo {demo_num}']['success_rate']:
-                    log_dict[f'task {task_id}'][f'demo {demo_num}']['success_rate'] = success_rate
-                    log_dict[f'task {task_id}'][f'demo {demo_num}']['path'] = exp_path
-
-        return log_dict
 
     pre_trained_model_path = om_cfg.pre_trained_model_path
     benchmark_name = om_cfg.pre_trained_model_path.split('/')[-5]

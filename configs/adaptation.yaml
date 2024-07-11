@@ -10,6 +10,7 @@ eval_in_train: false
 exp_dir: './experiments/lora_adaptation/'
 pre_trained_model_path: '../scripts/experiments/LIBERO_90/PreTrainMultitask/BCViLTPolicy_seed10000/run_006/multitask_model_ep20.pth'
 logger_path: '../adaptation/logger.txt'
+log: true
 seed: 100
 policy_type: 'LoraBCViLTPolicy'
 batch_size: 2

@@ -1,6 +1,7 @@
-model_path='../scripts/experiments/LIBERO_90/PreTrainMultitask/BCViLTPolicy_seed10000/run_006/multitask_model_ep20.pth'
-policy='LoraBCViLTPolicy'
+seed=$1
+demo_num=$2
+suite=LIBERO_GOAL
+pre_trained_model_path=../scripts/experiments/LIBERO_GOAL/PreTrainMultitask/BCTransformerPolicy_seed10000/run_001/multitask_model_ep10.pth
+policy_type=LoraBCTPolicy
 
-python ../adaptation/adapt_train.py adapt_demo_num_each_task=10 adapt_all=false adaptation_tasks=[1,2,3,4,5,6,7,8] adaption_suite=LIBERO_SPATIAL batch_size=64 pre_trained_model_path=$model_path policy_type=$policy
-sleep 2
-python ../adaptation/evaluation_single.py adapt_demo_num_each_task=10 adapt_all=false adaptation_tasks=[1,2,3,4,5,6,7,8] adaption_suite=LIBERO_SPATIAL batch_size=64 pre_trained_model_path=$model_path policy_type=$policy
+python ../adaptation/evaluation_single.py adapt_demo_num_each_task=$demo_num seed=$seed adapt_all=false adaptation_tasks=[5] adaption_suite=$suite batch_size=32 pre_trained_model_path=$pre_trained_model_path policy_type=$policy_type
