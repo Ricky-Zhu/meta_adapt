@@ -108,7 +108,8 @@ def main(om_cfg):
 
         return success_rate
 
-    logger = SimpleLogger(logger_path=om_cfg.logger_path, start_log=True)
+    logger_path = f'../online_adapt/logger_{om_cfg.seed}.txt'
+    logger = SimpleLogger(logger_path=logger_path, start_log=True)
     logger.write_and_print('start evaluation', to_print=True)
     pre_trained_model_path = om_cfg.pre_trained_model_path
     benchmark_name = om_cfg.pre_trained_model_path.split('/')[-5]
