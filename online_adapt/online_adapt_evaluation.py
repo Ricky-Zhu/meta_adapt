@@ -41,6 +41,19 @@ from easydict import EasyDict
 import hydra
 
 
+class SimpleLogger():
+    def __init__(self, logger_path, start_log):
+        self.logger_path = logger_path
+        self.start_log = start_log
+
+    def write_and_print(self, sentence, to_print=False):
+        if self.start_log:
+            with open(self.logger_path, "a") as f:
+                f.write(sentence + '\n')
+        if to_print:
+            print(sentence)
+
+
 @hydra.main(config_path="../configs", config_name="online_adaptation", version_base=None)
 def main(om_cfg):
     def evaluate_one_repo_adaptor(task_id, pre_train_model_path, adaptor_model_path, cfg_adapt):
@@ -95,7 +108,8 @@ def main(om_cfg):
 
         return success_rate
 
-
+    logger = SimpleLogger(logger_path=om_cfg.logger_path, start_log=True)
+    logger.write_and_print('start evaluation', to_print=True)
     pre_trained_model_path = om_cfg.pre_trained_model_path
     benchmark_name = om_cfg.pre_trained_model_path.split('/')[-5]
     adaptor_model_paths = os.path.join(om_cfg.exp_dir, benchmark_name,
@@ -125,11 +139,12 @@ def main(om_cfg):
                     tasks_best_path[ind] = exp_path
                 print(f'task:{task_id}, ep:{ep}, success_rate:{success_rate}')
 
-        config_info = f"adpat num:{config['adapt_demo_num_each_task']}.meta_update_epochs:{config['meta_update_epochs']}.support:{config['meta_support_num']}.query:{config['meta_query_num']}.random_meta:{config['random_meta']}.meta_update_epochs:{config['meta_update_epochs']}\n"
-        print(config_info)
-        print(tasks_best)
-        print(tasks_best_path)
-        print('----------------------------------------------------')
+        config_info = f"suite:{om_cfg.benchmark_name}, policy:{om_cfg.policy_type},seed:{om_cfg.seed}, demo num:{om_cfg.adapt_demo_num_each_task}\n"
+        logger.write_and_print(config_info, to_print=True)
+        logger.write_and_print(tasks_best, to_print=True)
+        logger.write_and_print(tasks_best_path, to_print=True)
+        logger.write_and_print('----------------------------------------------------', to_print=True)
+
         # save the log
         log_save_path = os.path.join(adaptor_model_paths, 'performance.txt')
         with open(log_save_path, 'w') as f:
