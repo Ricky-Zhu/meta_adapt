@@ -140,7 +140,7 @@ def main(om_cfg):
                     tasks_best_path[ind] = exp_path
                 print(f'task:{task_id}, ep:{ep}, success_rate:{success_rate}')
 
-        config_info = f"suite:{om_cfg.benchmark_name}, policy:{om_cfg.policy_type},seed:{om_cfg.seed}, demo num:{om_cfg.adapt_demo_num_each_task}\n"
+        config_info = f"suite:{benchmark_name}, policy:{om_cfg.policy_type},seed:{om_cfg.seed}, demo num:{om_cfg.adapt_demo_num_each_task}\n"
         logger.write_and_print(config_info, to_print=True)
         logger.write_and_print(tasks_best, to_print=True)
         logger.write_and_print(tasks_best_path, to_print=True)
